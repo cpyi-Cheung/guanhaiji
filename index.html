@@ -1,34 +1,565 @@
-  .choices {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;              /* 原本 16px，縮小間距 */
-    margin-top: 16px;       /* 原本 24px */
-  }
-  .choice {
-    flex-shrink: 0;
-    min-height: 52px;       /* 原本 80px，改小 */
-    font-family: inherit;
-    font-size: 0.98em;      /* 原本 1.08em，縮小 */
-    font-weight: 700;
-    padding: 12px 18px;     /* 原本 20px 24px，縮小 */
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    text-align: left;
-    color: #fff;
-    line-height: 1.45;
-    transition: transform .15s, filter .15s;
-    width: 100%;
-    word-break: break-word;
-    white-space: normal;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .choice .sub {
-    display: block;
-    font-size: 0.85em;
-    font-weight: 500;
-    opacity: .92;
-    margin-top: 3px;        /* 原本 6px */
-  }
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>觀海記：礁石與沙灘</title>
+    <style>
+        /* 基礎重置 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "PingFang TC", "Microsoft JhengHei", "Helvetica Neue", sans-serif;
+        }
+        
+        body {
+            background-color: #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* 遊戲主要場景 - 維持 16/9 比例並隱藏溢出 */
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 960px;
+            aspect-ratio: 16 / 9;
+            background: linear-gradient(to bottom, 
+                #64b5f6 0%, #64b5f6 45%, /* 藍天 */
+                #1976d2 45%, #1976d2 65%, /* 大海 */
+                #f5deb3 65%, #f5deb3 100%  /* 沙灘 */
+            );
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* 頂部進度條區域 */
+        .status-bar {
+            position: absolute;
+            top: 5%;
+            left: 5%;
+            right: 5%;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .bar-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 50%; /* 初始值 50% */
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fill-p { background-color: #e53935; } /* 原則值：紅色 */
+        .fill-r { background-color: #1e88e5; } /* 關係值：藍色 */
+
+        /* 場景元素 - 小路 */
+        .path {
+            position: absolute;
+            bottom: 12%;
+            left: 0;
+            width: 100%;
+            height: 12%;
+            background: #deb887;
+            border-radius: 50% 50% 0 0;
+        }
+
+        /* 場景元素 - 礁石 */
+        .reef {
+            position: absolute;
+            bottom: 15%;
+            width: 6%;
+            height: 8%;
+            background: #757575;
+            border-radius: 40% 60% 55% 45%;
+            box-shadow: inset -3px -3px 5px rgba(0,0,0,0.3);
+        }
+
+        /* 場景元素 - 燈塔 (終點) */
+        .lighthouse {
+            position: absolute;
+            bottom: 15%;
+            right: 5%;
+            width: 4%;
+            height: 25%;
+            background: repeating-linear-gradient(
+                to bottom,
+                #fff,
+                #fff 20%,
+                #d32f2f 20%,
+                #d32f2f 40%
+            );
+            border-radius: 5px 5px 0 0;
+        }
+        .lighthouse::before {
+            content: '';
+            position: absolute;
+            top: -15%;
+            left: -25%;
+            width: 150%;
+            height: 15%;
+            background: #ffeb3b;
+            border-radius: 50%;
+            box-shadow: 0 0 15px 5px rgba(255, 235, 59, 0.7);
+        }
+
+        /* 場景元素 - 小人 (學生) */
+        .character {
+            position: absolute;
+            bottom: 22%;
+            left: 5%; /* 起點 */
+            width: 3%;
+            height: 12%;
+            transition: left 1s ease-in-out;
+            z-index: 5;
+        }
+        
+        .char-head {
+            width: 100%;
+            padding-bottom: 100%; /* 圓形 */
+            background: #ffccbc;
+            border-radius: 50%;
+            margin-bottom: 2px;
+        }
+        
+        .char-body {
+            width: 80%;
+            height: 60%;
+            background: #4caf50;
+            margin: 0 auto;
+            border-radius: 5px 5px 0 0;
+        }
+
+        /* 主按鈕 (遊戲場景內) */
+        .main-btn {
+            position: absolute;
+            bottom: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+            background: #ff9800;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 20;
+            transition: transform 0.1s;
+        }
+        .main-btn:active { transform: translateX(-50%) scale(0.95); }
+
+        /* ======== 重要的 UI 與顯示要求：彈出視窗 ======== */
+        .modal-overlay {
+            position: fixed; /* 覆蓋整個瀏覽器視窗，避免 overflow: hidden 裁切 */
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.3s, opacity 0.3s ease; /* 淡入淡出順暢 */
+            z-index: 9999;
+        }
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 780px; /* 對話框夠大 */
+            max-height: calc(100dvh - 40px); /* 避免手機網址列影響，且內容過長可滾動 */
+            overflow-y: auto;
+            border-radius: 12px;
+            padding: 30px 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .modal-desc {
+            font-size: 1.05em;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        /* 選項按鈕區 */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* 按鈕之間間距約 10px */
+        }
+
+        .btn-choice {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 52px; /* 按鈕不要太大，但也夠好點按 */
+            padding: 12px 18px;
+            font-size: 0.98em;
+            flex-shrink: 0; /* 絕對不能被壓縮或裁切 */
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .btn-choice:hover { background: #e9ecef; border-color: #adb5bd; }
+        .btn-choice:active { transform: scale(0.98); }
+
+        .btn-reef-style { border-left: 5px solid #e53935; }
+        .btn-beach-style { border-left: 5px solid #1e88e5; }
+
+        .btn-continue {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .ending-text {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #444;
+            text-align: left;
+            background: #f1f8e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 520px) {
+            .modal-content {
+                width: 95%; /* 手機上幾乎全螢幕 */
+                padding: 20px 15px;
+            }
+            .status-bar { flex-direction: column; gap: 8px; }
+            .bar-container { padding: 5px 10px; }
+            .game-wrapper {
+                aspect-ratio: auto;
+                height: 100vh; /* 在極小螢幕可切換為充滿畫面 */
+            }
+            .character { height: 8%; width: 5%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 遊戲場景 -->
+    <div class="game-wrapper">
+        <!-- 狀態列 -->
+        <div class="status-bar">
+            <div class="bar-container">
+                <span style="color:#e53935">原則值</span>
+                <div class="bar-track"><div class="bar-fill fill-p" id="bar-p"></div></div>
+                <span id="score-p">50</span>
+            </div>
+            <div class="bar-container">
+                <span style="color:#1e88e5">關係值</span>
+                <div class="bar-track"><div class="bar-fill fill-r" id="bar-r"></div></div>
+                <span id="score-r">50</span>
+            </div>
+        </div>
+
+        <!-- 背景路徑與礁石 (動態生成) -->
+        <div class="path"></div>
+        <!-- 5 塊礁石的位置: 20%, 35%, 50%, 65%, 80% -->
+        <div class="reef" style="left: 20%;"></div>
+        <div class="reef" style="left: 35%;"></div>
+        <div class="reef" style="left: 50%;"></div>
+        <div class="reef" style="left: 65%;"></div>
+        <div class="reef" style="left: 80%;"></div>
+        <div class="lighthouse"></div>
+
+        <!-- 小人 -->
+        <div class="character" id="player">
+            <div class="char-head"></div>
+            <div class="char-body"></div>
+        </div>
+
+        <button class="main-btn" id="action-btn" onclick="startJourney()">開始旅程</button>
+    </div>
+
+    <!-- 彈出視窗：情境選擇 (position: fixed 覆蓋全螢幕) -->
+    <div class="modal-overlay" id="modal-scenario">
+        <div class="modal-content">
+            <div class="modal-title" id="scenario-title">情境標題</div>
+            <div class="modal-desc" id="scenario-desc">情境描述...</div>
+            <div class="btn-group">
+                <button class="btn-choice btn-reef-style" onclick="makeChoice('A')"><strong style="color:#e53935">礁石態度：</strong><span id="btn-text-a"></span></button>
+                <button class="btn-choice btn-beach-style" onclick="makeChoice('B')"><strong style="color:#1e88e5">沙灘態度：</strong><span id="btn-text-b"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 彈出視窗：結果回饋 -->
+    <div class="modal-overlay" id="modal-result">
+        <div class="modal-content">
+            <div class="modal-title">選擇結果</div>
+            <div class="modal-desc" id="result-desc" style="text-align: center; font-weight: bold;">結果文字...</div>
+            <div style="font-size: 0.9em; color: #666;">
+                原則值 <span id="res-change-p"></span> / 關係值 <span id="res-change-r"></span>
+            </div>
+            <button class="btn-continue" onclick="continueJourney()">繼續前進</button>
+        </div>
+    </div>
+
+    <!-- 彈出視窗：結局卡 -->
+    <div class="modal-overlay" id="modal-ending">
+        <div class="modal-content">
+            <div class="modal-title" style="font-size: 1.8em; color: #2e7d32;" id="ending-title">結局標題</div>
+            <div class="modal-desc" style="text-align: center; font-weight:bold;">
+                最終分數：原則 <span id="final-p"></span> | 關係 <span id="final-r"></span>
+            </div>
+            <div class="ending-text" id="ending-desc">評語與反思...</div>
+            <button class="btn-continue" onclick="location.reload()">重新體驗</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲資料 ---
+        // 初始設定分數與步驟
+        let pScore = 50; // 原則值
+        let rScore = 50; // 關係值
+        let currentStep = -1; // -1: 準備, 0~4: 礁石, 5: 燈塔
+
+        // 小人在各階段的左側位置百分比 (起點 5%，礁石 20~80%，終點 90%)
+        const positions = ["20%", "35%", "50%", "65%", "80%", "90%"];
+
+        // 5 個情境資料
+        const scenarios = [
+            {
+                title: "情境 1：考試被誤會作弊",
+                desc: "你在考試時筆掉在地上，彎腰去撿，老師卻以為你在偷看小抄。面對這個誤會，你會怎麼做？",
+                optA: "據理力爭，堅持自己絕對沒有作弊，要求老師查明。",
+                optB: "先接受處罰，事後再找機會向老師私下解釋。",
+                resA: "老師查清了，但同學覺得你太剛硬，有些不好親近。",
+                resB: "老師發現誤會，但你的平時成績已經稍微受到了影響。",
+                changeA: { p: 15, r: -10 },
+                changeB: { p: -5, r: 15 }
+            },
+            {
+                title: "情境 2：好朋友借錢不還",
+                desc: "好朋友借了你一筆錢，答應上週還卻一直沒提。你急需用錢，你會：",
+                optA: "直接攤牌，要求對方立刻還錢。",
+                optB: "為了不傷和氣，暫時不提，自己想別的辦法。",
+                resA: "錢要回來了，但你們的友誼出現了裂痕。",
+                resB: "錢沒了，但你們的友誼還在。",
+                changeA: { p: 15, r: -10 },
+                changeB: { p: -5, r: 15 }
+            },
+            {
+                title: "情境 3：被同學排擠",
+                desc: "班上一個小團體突然開始排擠你，他們在討論事情時刻意忽略你。你會：",
+                optA: "不妥協，堅持做自己，不需要勉強迎合他們。",
+                optB: "主動示好，買些小點心請他們吃以緩和氣氛。",
+                resA: "你感到有些孤獨，但內心十分自在坦蕩。",
+                resB: "你勉強融入了他們，但感覺違背了自己的心意。",
+                changeA: { p: 15, r: -10 },
+                changeB: { p: -5, r: 15 }
+            },
+            {
+                title: "情境 4：父母偷看日記",
+                desc: "你發現父母私自翻看了你的日記本。你非常生氣，你會：",
+                optA: "嚴肅抗議，大聲表達不滿並要求他們道歉。",
+                optB: "試著理解父母是出自關心，心平氣和地與他們溝通。",
+                resA: "父母生氣了，但以後確實不敢再隨便偷看。",
+                resB: "父母很感動你的懂事，但可能還是會暗中擔心你。",
+                changeA: { p: 15, r: -10 },
+                changeB: { p: -5, r: 15 }
+            },
+            {
+                title: "情境 5：分組報告被隊友拖累",
+                desc: "分組報告的隊友什麼都不做，眼看死線將至。你會：",
+                optA: "直接向老師舉報隊友的行為，要求重新分組或獨立評分。",
+                optB: "為了分數，自己多做一點把報告趕完。",
+                resA: "隊友被扣分了，但你卻被班上其他人視為「會告狀的人」而被孤立。",
+                resB: "報告順利完成並拿了高分，但你感到非常疲憊與委屈。",
+                changeA: { p: 15, r: -10 },
+                changeB: { p: -5, r: 15 }
+            }
+        ];
+
+        // --- 介面更新與遊戲邏輯 ---
+
+        // 更新頂部分數與進度條 (帶動畫)
+        function updateScore() {
+            // 限制分數在 0~100 之間
+            pScore = Math.max(0, Math.min(100, pScore));
+            rScore = Math.max(0, Math.min(100, rScore));
+            
+            document.getElementById('score-p').innerText = pScore;
+            document.getElementById('score-r').innerText = rScore;
+            
+            // 改變 CSS 寬度觸發 transition
+            document.getElementById('bar-p').style.width = pScore + '%';
+            document.getElementById('bar-r').style.width = rScore + '%';
+        }
+
+        // 開啟遮罩視窗
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        // 關閉遮罩視窗
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // 點擊開始旅程
+        function startJourney() {
+            let btn = document.getElementById('action-btn');
+            btn.style.display = 'none'; // 隱藏按鈕
+            
+            // 小人移動到第一關
+            currentStep = 0;
+            document.getElementById('player').style.left = positions[currentStep];
+            
+            // 等待移動動畫結束後顯示情境
+            setTimeout(() => {
+                showScenario();
+            }, 1000);
+        }
+
+        // 顯示當前情境
+        function showScenario() {
+            let data = scenarios[currentStep];
+            document.getElementById('scenario-title').innerText = data.title;
+            document.getElementById('scenario-desc').innerText = data.desc;
+            document.getElementById('btn-text-a').innerText = data.optA;
+            document.getElementById('btn-text-b').innerText = data.optB;
+            openModal('modal-scenario');
+        }
+
+        // 處理玩家選擇
+        function makeChoice(choice) {
+            let data = scenarios[currentStep];
+            let resultText = "";
+            let change = {};
+
+            if (choice === 'A') {
+                resultText = data.resA;
+                change = data.changeA;
+            } else {
+                resultText = data.resB;
+                change = data.changeB;
+            }
+
+            // 更新分數
+            pScore += change.p;
+            rScore += change.r;
+            updateScore();
+
+            // 準備結果視窗內容
+            document.getElementById('result-desc').innerText = resultText;
+            document.getElementById('res-change-p').innerText = (change.p > 0 ? "+" : "") + change.p;
+            document.getElementById('res-change-r').innerText = (change.r > 0 ? "+" : "") + change.r;
+            
+            // 替換顏色
+            document.getElementById('res-change-p').style.color = change.p > 0 ? "#e53935" : "#757575";
+            document.getElementById('res-change-r').style.color = change.r > 0 ? "#1e88e5" : "#757575";
+
+            closeModal('modal-scenario');
+            setTimeout(() => {
+                openModal('modal-result');
+            }, 300); // 稍微延遲讓前一個視窗淡出
+        }
+
+        // 繼續前進到下一關或終點
+        function continueJourney() {
+            closeModal('modal-result');
+            currentStep++;
+            
+            // 小人移動
+            document.getElementById('player').style.left = positions[currentStep];
+
+            if (currentStep < 5) {
+                // 還沒走完，等動畫後顯示下一題
+                setTimeout(() => {
+                    showScenario();
+                }, 1000);
+            } else {
+                // 走到終點 (燈塔)，顯示結局
+                setTimeout(() => {
+                    showEnding();
+                }, 1200);
+            }
+        }
+
+        // 判定與顯示結局
+        function showEnding() {
+            let title = "";
+            let desc = "";
+            let diff = pScore - rScore;
+
+            if (diff > 20) {
+                title = "結局：孤獨的礁石";
+                desc = "你像一塊堅硬的礁石，在浪潮中堅守自我。雖然保全了原則，卻也難免感到孤獨。反思《觀海記》的結尾，我們是否能在堅持與包容間找到平衡？";
+            } else if (rScore - pScore > 20) {
+                title = "結局：被沖刷的沙灘";
+                desc = "你像一片包容的沙灘，退讓與妥協讓你維繫了關係，但有時卻失去了原本的形狀與底線。反思《觀海記》的結尾，真正的溫柔是否也需要堅定的力量？";
+            } else {
+                title = "結局：智慧的觀海者";
+                desc = "你是充滿智慧的觀海者！懂得在原則與關係之間進退有度，既不剛硬傷人，也不軟弱妥協。正如《觀海記》所啟發，人生正是在礁石與沙灘之間，找到最美的海岸線。";
+            }
+
+            document.getElementById('final-p').innerText = pScore;
+            document.getElementById('final-r').innerText = rScore;
+            document.getElementById('ending-title').innerText = title;
+            document.getElementById('ending-desc').innerText = desc;
+            
+            openModal('modal-ending');
+        }
+    </script>
+</body>
+</html>
