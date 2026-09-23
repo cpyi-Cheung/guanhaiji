@@ -40,6 +40,7 @@
     text-shadow: 0 0 18px rgba(90,190,255,.55);
   }
 
+  /* ---------- 頂部數值條 ---------- */
   .hud { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
   .bar-row {
     display: flex; align-items: center; gap: 8px;
@@ -61,6 +62,7 @@
   .fill.r { background: linear-gradient(90deg, #63b8f8, #1864ab); box-shadow: 0 0 12px rgba(90,170,255,.75); }
   .bar-row .val { width: 2.6em; flex: none; font-variant-numeric: tabular-nums; font-weight: 700; }
 
+  /* ---------- 場景 ---------- */
   .scene {
     position: relative;
     width: 100%;
@@ -74,7 +76,22 @@
     -webkit-user-select: none;
     box-shadow: inset 0 0 50px rgba(0,20,40,.22), 0 8px 22px rgba(0,0,0,.32);
   }
-  .sky { position: absolute; inset: 0 0 45% 0; background: linear-gradient(180deg, #4fb3e8 0%, #8fd4f5 55%, #d8f1fd 100%); }
+
+  /* 動態天氣：透過 .sky / .sea 的 class 切換 */
+  .sky {
+    position: absolute; inset: 0 0 45% 0;
+    background: linear-gradient(180deg, #4fb3e8 0%, #8fd4f5 55%, #d8f1fd 100%);
+    transition: background 1s ease;
+  }
+  /* 原則高：天空變暗 */
+  .scene.mood-rock .sky {
+    background: linear-gradient(180deg, #2a4a63 0%, #4a6d85 55%, #8fa5b5 100%);
+  }
+  /* 關係高：天空變暖 */
+  .scene.mood-sand .sky {
+    background: linear-gradient(180deg, #f8a850 0%, #ffd18a 55%, #fff0d0 100%);
+  }
+
   .sun {
     position: absolute; top: 7%; right: 12%;
     width: clamp(26px, 5vw, 52px); aspect-ratio: 1;
@@ -82,14 +99,25 @@
     background: radial-gradient(circle, #fffbd6 0%, #ffe066 45%, rgba(255,214,64,0) 72%);
     box-shadow: 0 0 40px rgba(255,224,102,.8);
     animation: sunPulse 4s ease-in-out infinite;
+    opacity: .85;
+    transition: opacity 1s ease, box-shadow 1s ease;
   }
-  @keyframes sunPulse { 0%,100% { opacity:.82; transform:scale(1);} 50% { opacity:1; transform:scale(1.08);} }
+  .scene.mood-sand .sun {
+    opacity: 1;
+    box-shadow: 0 0 80px 20px rgba(255,200,80,.9);
+  }
+  .scene.mood-rock .sun { opacity: 0.25; }
+  @keyframes sunPulse {
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.08); }
+  }
 
   .cloud {
     position: absolute; height: 4.5%;
     background: #fff; border-radius: 999px;
     opacity: .88; filter: blur(1px);
     box-shadow: 0 0 18px rgba(255,255,255,.6);
+    transition: opacity 1s ease;
   }
   .cloud::before {
     content: ''; position: absolute;
@@ -99,29 +127,79 @@
   .c1 { top: 11%; left: 7%;  width: 15%; animation: drift 26s ease-in-out infinite; }
   .c2 { top: 23%; left: 40%; width: 11%; animation: drift 34s ease-in-out infinite; }
   .c3 { top: 7%;  left: 64%; width: 13%; animation: drift 30s ease-in-out infinite; }
-  @keyframes drift { 0%,100% { transform: translateX(-8%);} 50% { transform: translateX(8%);} }
+  .scene.mood-rock .cloud { opacity: .35; }
+  .scene.mood-sand .cloud { opacity: 1; }
+  @keyframes drift {
+    0%,100% { transform: translateX(-8%); }
+    50%     { transform: translateX(8%); }
+  }
+
+  /* 雨滴：只在 mood-rock 顯示 */
+  .rain {
+    position: absolute; inset: 0 0 45% 0;
+    opacity: 0;
+    transition: opacity 1s ease;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .scene.mood-rock .rain { opacity: 1; }
+  .rain::before, .rain::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(105deg, transparent 0 46%, rgba(200,230,255,.55) 46% 48%, transparent 48% 100%);
+    background-size: 90px 90px;
+    background-position: 0 0;
+    animation: rainFall 0.6s linear infinite;
+  }
+  .rain::after {
+    background-size: 130px 130px;
+    background-position: 40px 30px;
+    animation-duration: 0.9s;
+    opacity: .7;
+  }
+  @keyframes rainFall {
+    from { background-position: 0 -90px; }
+    to   { background-position: 0 90px; }
+  }
 
   .sea {
     position: absolute; left: 0; right: 0; top: 55%; bottom: 26%;
     background: linear-gradient(180deg, #46a9dd 0%, #1f74ab 55%, #14568a 100%);
+    transition: background 1s ease;
+  }
+  .scene.mood-rock .sea {
+    background: linear-gradient(180deg, #2c5d7d 0%, #1a3f5c 55%, #0d2739 100%);
+  }
+  .scene.mood-sand .sea {
+    background: linear-gradient(180deg, #6cb9d8 0%, #3f8db5 55%, #276e94 100%);
   }
   .sea::before {
-    content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    content: '';
+    position: absolute; left: 0; right: 0; top: 0; height: 3px;
     background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85), rgba(255,255,255,0));
   }
   .sea::after {
-    content: ''; position: absolute; inset: 12% 0 auto 0; height: 40%;
+    content: '';
+    position: absolute; inset: 12% 0 auto 0; height: 40%;
     background: repeating-linear-gradient(180deg, rgba(255,255,255,.16) 0 2px, transparent 2px 16px);
     animation: waveShift 7s linear infinite;
   }
-  @keyframes waveShift { from { background-position-y: 0; } to { background-position-y: 16px; } }
+  @keyframes waveShift {
+    from { background-position-y: 0; }
+    to   { background-position-y: 16px; }
+  }
 
   .sand {
     position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
     background: linear-gradient(180deg, #f6e5b5 0%, #e8d099 55%, #d8b97a 100%);
+    transition: filter 1s ease;
   }
+  .scene.mood-rock .sand { filter: brightness(.75) saturate(.7); }
+  .scene.mood-sand .sand { filter: brightness(1.08) saturate(1.15); }
   .sand::after {
-    content: ''; position: absolute; inset: 0;
+    content: '';
+    position: absolute; inset: 0;
     background-image: radial-gradient(rgba(170,140,85,.35) 1px, transparent 1.6px);
     background-size: 16px 12px; opacity: .65;
   }
@@ -134,6 +212,7 @@
     z-index: 3;
   }
 
+  /* ---------- 燈塔 ---------- */
   .lighthouse {
     position: absolute; left: 92%; bottom: 25%;
     width: clamp(16px, 2.6vw, 32px); aspect-ratio: 1 / 3;
@@ -162,8 +241,9 @@
     background: #2c3e50;
     clip-path: polygon(50% 0, 100% 100%, 0 100%);
   }
-  @keyframes lampGlow { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+  @keyframes lampGlow { 0%,100% { opacity: .8; } 50% { opacity: 1; } }
 
+  /* ---------- 礁石 ---------- */
   .rock {
     position: absolute; bottom: 24%;
     width: clamp(24px, 4.4vw, 52px);
@@ -193,6 +273,7 @@
   }
   .rock.done { opacity: .5; filter: saturate(.55); }
 
+  /* ---------- 小人 ---------- */
   .person {
     position: absolute; bottom: 25%; left: 5%;
     width: clamp(18px, 2.8vw, 34px);
@@ -201,18 +282,29 @@
     opacity: 0; z-index: 8; pointer-events: none;
   }
   .person.show { opacity: 1; }
+
   .person-inner {
     display: flex; flex-direction: column; align-items: center;
     animation: bob 1.6s ease-in-out infinite;
   }
-  @keyframes bob { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-7%);} }
+  @keyframes bob {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-7%); }
+  }
+
   .person .head {
-    position: relative; width: 58%; aspect-ratio: 1;
-    background: #f8d3a5; border: 2px solid #c99a6a; border-radius: 50%;
+    position: relative;
+    width: 58%; aspect-ratio: 1;
+    background: #f8d3a5;
+    border: 2px solid #c99a6a;
+    border-radius: 50%;
   }
   .person .head::after {
-    content: ''; position: absolute; top: -20%; left: -7%;
-    width: 114%; height: 56%; background: #3d2b1f;
+    content: '';
+    position: absolute;
+    top: -20%; left: -7%;
+    width: 114%; height: 56%;
+    background: #3d2b1f;
     border-radius: 50% 50% 30% 30%;
   }
   .person .body {
@@ -221,17 +313,63 @@
     background: linear-gradient(180deg, #4da3f0, #2b6cb0);
     border-radius: 38% 38% 22% 22%;
   }
-  .person .legs { display: flex; gap: 14%; width: 58%; margin-top: -3%; }
-  .person .leg { flex: 1; aspect-ratio: 1 / 1.7; background: #2f4f7a; border-radius: 0 0 42% 42%; }
+  .person .legs {
+    display: flex; gap: 14%;
+    width: 58%; margin-top: -3%;
+  }
+  .person .leg {
+    flex: 1; aspect-ratio: 1 / 1.7;
+    background: #2f4f7a;
+    border-radius: 0 0 42% 42%;
+  }
+
+  /* 小人頭上的狀態圖示 */
+  .person-badge {
+    position: absolute;
+    bottom: 100%; left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(11px, 1.6vw, 16px);
+    line-height: 1;
+    padding: 3px 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 2px 6px rgba(0,0,0,.3);
+    opacity: 0;
+    transition: opacity .4s ease, transform .4s ease;
+    white-space: nowrap;
+  }
+  .person-badge.show { opacity: 1; }
+
+  /* ---------- 漂浮數值動畫 ---------- */
+  .float-layer {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 30;
+    overflow: hidden;
+  }
+  .float-num {
+    position: absolute;
+    font-weight: 900;
+    font-size: clamp(14px, 2vw, 20px);
+    text-shadow: 0 2px 6px rgba(0,0,0,.6), 0 0 12px currentColor;
+    animation: floatUp 1.6s ease-out forwards;
+    white-space: nowrap;
+  }
+  .float-num.up { color: #4ade80; }
+  .float-num.down { color: #f87171; }
+  @keyframes floatUp {
+    0%   { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+    20%  { transform: translate(-50%, -14px) scale(1.15); opacity: 1; }
+    100% { transform: translate(-50%, -80px) scale(1); opacity: 0; }
+  }
 
   /* ============================================================
-     對話遮罩：固定覆蓋整個視窗
+     對話遮罩：fixed 覆蓋整個視窗
      ============================================================ */
   #overlay {
     position: fixed;
     top: 0; left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     z-index: 99999;
     background: rgba(5, 20, 34, .85);
     display: flex;
@@ -246,54 +384,52 @@
 
   #modal {
     width: 100%;
-    max-width: 780px;
-    /* 對話框本體最高到視窗高度減 40px，並允許內部滾動 */
+    max-width: 720px;
     max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
     overflow-y: auto;
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff 0%, #eaf4ff 100%);
     color: #16324a;
     border-radius: 22px;
-    padding: 30px 28px;
+    padding: 24px 24px;
     box-shadow: 0 25px 80px rgba(0,0,0,.75);
-    font-size: clamp(16px, 2vw, 19px);
-    line-height: 1.8;
+    font-size: clamp(15px, 1.9vw, 17px);
+    line-height: 1.75;
   }
   #modal::-webkit-scrollbar { width: 10px; }
   #modal::-webkit-scrollbar-thumb { background: #b3d4e8; border-radius: 5px; }
   #modal::-webkit-scrollbar-track { background: transparent; }
 
   #modal h3 {
-    margin: 0 0 16px;
-    font-size: 1.4em;
+    margin: 0 0 12px;
+    font-size: 1.25em;
     color: #0b5c8a;
     border-left: 5px solid #3aa0d8;
-    padding-left: 14px;
-    line-height: 1.4;
+    padding-left: 12px;
+    line-height: 1.45;
   }
-  #modal p { margin: 0 0 16px; }
+  #modal p { margin: 0 0 12px; }
 
-  /* ============================================================
-     關鍵修正：按鈕設定 flex-shrink: 0，絕對不會被壓扁
-     ============================================================ */
   .choices {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-top: 24px;
+    gap: 10px;
+    margin-top: 16px;
   }
+
   .choice {
-    flex-shrink: 0;            /* 不被壓縮 */
-    min-height: 80px;          /* 至少 80px 高 */
+    flex-shrink: 0;
+    min-height: 52px;
     font-family: inherit;
-    font-size: 1.08em;
+    font-size: 0.98em;
     font-weight: 700;
-    padding: 20px 24px;
+    padding: 12px 18px;
     border: none;
-    border-radius: 14px;
+    border-radius: 12px;
     cursor: pointer;
     text-align: left;
     color: #fff;
-    line-height: 1.55;
+    line-height: 1.45;
     transition: transform .15s, filter .15s;
     width: 100%;
     word-break: break-word;
@@ -304,18 +440,29 @@
   }
   .choice .sub {
     display: block;
-    font-size: .9em;
+    font-size: .85em;
     font-weight: 500;
     opacity: .92;
-    margin-top: 6px;
+    margin-top: 3px;
   }
   .choice.rock { background: linear-gradient(135deg, #8a6f5c, #4a372b); }
   .choice.sand { background: linear-gradient(135deg, #f5c463, #e09420); color: #3a2500; }
   .choice:hover  { transform: translateY(-2px); filter: brightness(1.08); }
   .choice:active { transform: translateY(0) scale(.985); }
 
+  /* 隱藏選項：發光脈動 */
+  .choice.secret {
+    background: linear-gradient(135deg, #6ee7b7, #10b981);
+    color: #05372b;
+    animation: secretGlow 1.8s ease-in-out infinite;
+  }
+  @keyframes secretGlow {
+    0%,100% { box-shadow: 0 0 12px 2px rgba(110,231,183,.55); }
+    50%     { box-shadow: 0 0 24px 6px rgba(110,231,183,.9); }
+  }
+
   #resultText { font-weight: 700; color: #0b5c8a; }
-  .delta { font-size: 1em; color: #48697f; margin-bottom: 20px; }
+  .delta { font-size: 1em; color: #48697f; margin-bottom: 16px; }
   .delta b { font-size: 1.15em; }
   .delta .up   { color: #1f9d55; }
   .delta .down { color: #d64545; }
@@ -333,15 +480,56 @@
   .btn.primary {
     display: block;
     width: 100%;
-    padding: 18px 24px;
-    font-size: 1.05em;
+    padding: 13px 20px;
+    font-size: 1em;
     color: #fff;
     background: linear-gradient(135deg, #29b6c9, #0b7285);
-    margin-top: 20px;
+    margin-top: 14px;
   }
   .btn.primary:hover:not(:disabled)  { transform: translateY(-2px); filter: brightness(1.08); }
   .btn.primary:active:not(:disabled) { transform: translateY(0) scale(.985); }
   .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* 結局反思按鈕 */
+  .reflect-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .reflect-btns .btn {
+    flex: 1 1 0;
+    min-width: 140px;
+    padding: 12px 14px;
+    font-size: .95em;
+    color: #fff;
+    background: linear-gradient(135deg, #6b8fd4, #3d5a95);
+  }
+  .reflect-btns .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+
+  .reflect-box {
+    margin-top: 12px;
+    background: #f4faff;
+    border-left: 5px solid #7fc7ee;
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: #26485f;
+    text-align: left;
+    font-size: .96em;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  .reflect-box.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reflect-box .think-label {
+    font-weight: 800;
+    color: #0b5c8a;
+    display: block;
+    margin-bottom: 6px;
+  }
 
   .footer { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
   .status {
@@ -351,8 +539,12 @@
     min-height: 1.5em;
     line-height: 1.55;
   }
-  .footer .btn.primary { max-width: 320px; margin: 0 auto; font-size: 1em; padding: 12px 16px; }
+  .footer .btn.primary {
+    max-width: 320px; margin: 0 auto;
+    font-size: 1em; padding: 12px 16px;
+  }
 
+  /* ---------- 結局卡 ---------- */
   #modal.ending { text-align: center; }
   .ending .badge {
     display: inline-block;
@@ -362,12 +554,24 @@
     border-radius: 999px;
     background: #e2f0fb;
     color: #0b5c8a;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
   .ending .end-emoji { font-size: 3em; line-height: 1; margin-bottom: 8px; }
   .ending h3 {
-    border: none; padding: 0; margin: 0 0 14px;
-    font-size: 1.8em; letter-spacing: 4px;
+    border: none; padding: 0; margin: 0 0 10px;
+    font-size: 1.7em; letter-spacing: 4px;
+  }
+  .ending .title-badge {
+    display: inline-block;
+    font-size: .82em;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: #fff3c4;
+    color: #8a6a00;
+    border: 1px solid #f0d878;
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+    font-weight: 800;
   }
   .ending .end-comment {
     text-align: left;
@@ -381,25 +585,35 @@
     text-align: left;
     font-size: .95em;
     color: #5b7f96;
-    margin-top: 14px;
+    margin-top: 12px;
   }
   .ending .end-stats {
     display: flex;
     justify-content: center;
     gap: 34px;
-    margin: 18px 0 6px;
+    margin: 16px 0 4px;
     font-size: 1em;
     color: #48697f;
   }
   .ending .end-stats b { font-size: 1.35em; }
-  .ending .btn.primary { margin-top: 18px; }
+
+  @media (max-width: 520px) {
+    #overlay { padding: 10px; }
+    #modal {
+      max-height: calc(100dvh - 20px);
+      padding: 20px 18px;
+    }
+    .reflect-btns .btn { flex: 1 1 100%; }
+  }
 </style>
 </head>
 <body>
 
 <div class="game">
+
   <h1 class="title">🌊 觀海記 · 礁石與沙灘</h1>
 
+  <!-- 數值條 -->
   <div class="hud">
     <div class="bar-row">
       <span class="label">原則值</span>
@@ -413,12 +627,14 @@
     </div>
   </div>
 
+  <!-- 場景 -->
   <div class="scene" id="scene">
     <div class="sky"></div>
     <div class="sun"></div>
     <div class="cloud c1"></div>
     <div class="cloud c2"></div>
     <div class="cloud c3"></div>
+    <div class="rain"></div>
     <div class="sea"></div>
     <div class="sand"></div>
     <div class="path"></div>
@@ -430,20 +646,27 @@
     </div>
 
     <div class="person" id="person">
+      <div class="person-badge" id="personBadge"></div>
       <div class="person-inner">
         <div class="head"></div>
         <div class="body"></div>
         <div class="legs"><div class="leg"></div><div class="leg"></div></div>
       </div>
     </div>
+
+    <!-- 漂浮數值層 -->
+    <div class="float-layer" id="floatLayer"></div>
   </div>
 
+  <!-- 底部控制 -->
   <div class="footer">
     <div class="status" id="status">點擊「開始旅程」，展開你的觀海之路。</div>
     <button class="btn primary" id="mainBtn">開始旅程</button>
   </div>
+
 </div>
 
+<!-- 對話遮罩 -->
 <div id="overlay">
   <div id="modal">
     <div id="sceneView">
@@ -452,6 +675,7 @@
       <div class="choices" id="choices">
         <button class="choice rock" id="btnRock"></button>
         <button class="choice sand" id="btnSand"></button>
+        <button class="choice secret" id="btnSecret" style="display:none"></button>
       </div>
       <div id="resultBox" style="display:none">
         <p id="resultText"></p>
@@ -467,10 +691,11 @@
 (function () {
   'use strict';
 
+  /* ==================== 情境資料 ==================== */
   const SCENARIOS = [
     {
       title: '第 1 塊礁石：考試被誤會作弊',
-      desc: '段考時，隔壁同學的答案卡不小心滑到你的桌邊。監考老師走過來，懷疑你偷看，全班的目光都集中在你身上……',
+      desc: '段考時，隔壁同學的答案卡不小心滑到你的桌邊。老師走過來，懷疑你偷看，全班都在看你……',
       rock: { name: '據理力爭', result: '你當場向老師說明經過。老師查清後還你清白，但同學覺得你「太剛硬、不好相處」。', dp: 15, dr: -10 },
       sand: { name: '先接受處罰', result: '你默默接受扣分。事後老師發現是誤會並向你道歉，但你的成績已經受到影響。', dp: -5, dr: 15 }
     },
@@ -490,26 +715,48 @@
       title: '第 4 塊礁石：父母偷看日記',
       desc: '你發現日記本被翻動過，位置和折角都跟你放的不一樣。媽媽說：「我們只是關心你。」',
       rock: { name: '嚴肅抗議', result: '你很認真地告訴他們這是你的隱私。父母很生氣，但從此之後，他們真的不敢再偷看了。', dp: 15, dr: -10 },
-      sand: { name: '理解父母', result: '你選擇體諒他們的擔心，沒有多說什麼。父母很感動，但他們的操心似乎沒有減少。', dp: -5, dr: 15 }
+      sand: { name: '理解父母', result: '你選擇體諒他們的擔心，沒有多說什麼。父母很感動，但他們的操心似乎沒有減少。', dp: -5, dr: 15 },
+      secret: { name: '好好談一談', result: '你告訴父母：我知道你們擔心我，但我也需要一點自己的空間。我們約好，如果我有心事，我會主動說；你們想關心我，可以先問我。父母點點頭，你們都鬆了一口氣。', dp: 10, dr: 10 }
     },
     {
       title: '第 5 塊礁石：分組報告被隊友拖累',
       desc: '分組報告的前一天晚上，你才發現隊友幾乎什麼都沒做。明天就要上台了，你的名字就寫在報告的第一頁。',
       rock: { name: '向老師舉報', result: '你把每個人的分工如實告訴老師。隊友被扣分，你也因此被班上一些人孤立。', dp: 15, dr: -10 },
-      sand: { name: '自己多做一點', result: '你熬夜把整份報告補完。報告順利交出去了，但你累得幾乎說不出話。', dp: -5, dr: 15 }
+      sand: { name: '自己多做一點', result: '你熬夜把整份報告補完。報告順利交出去了，但你累得幾乎說不出話。', dp: -5, dr: 15 },
+      secret: { name: '和隊友一起想辦法', result: '你把隊友找來，說明目前的情況，一起討論怎麼分工。雖然時間很趕，但大家一起熬夜完成，每個人都盡了一份力。', dp: 10, dr: 10 }
     }
   ];
 
+  /* 給小六學生看的白話反思引導 */
+  const REFLECT = {
+    rock: '堅持自己的想法很重要，但講話太大聲或太兇，可能會讓別人受傷。就像海裡的礁石，可以擋住大浪，也可以讓海水輕輕流過去。想一想：你能堅持自己的想法，但用比較溫柔的方式說出來嗎？',
+    sand: '對朋友好、願意讓步，是很棒的事。但如果每次都退讓，久了可能會忘記自己真正想要什麼。就像沙灘很軟，但它也有自己的邊界。想一想：你可以和朋友好好相處，同時也保護自己嗎？'
+  };
+
+  /* ==================== 位置設定 ==================== */
   const START_X      = 5;
   const ROCK_X       = [20, 34, 48, 62, 76];
   const APPROACH_GAP = 5.5;
   const PASS_GAP     = 5.5;
   const END_X        = 86;
 
-  const state = { p: 50, r: 50, idx: 0, busy: false };
+  /* ==================== 狀態 ==================== */
+  const state = {
+    p: 50,
+    r: 50,
+    idx: 0,
+    busy: false,
+    // 記錄玩家歷程，用於稱號
+    history: [],           // 'rock' | 'sand' | 'secret'
+    secretsAvailable: [],  // 每關是否有隱藏選項
+    secretUsed: 0
+  };
 
+  /* ==================== DOM ==================== */
   const scene      = document.getElementById('scene');
   const personEl   = document.getElementById('person');
+  const personBadge= document.getElementById('personBadge');
+  const floatLayer = document.getElementById('floatLayer');
   const mainBtn    = document.getElementById('mainBtn');
   const statusEl   = document.getElementById('status');
   const overlay    = document.getElementById('overlay');
@@ -524,12 +771,14 @@
   const resultDelta= document.getElementById('resultDelta');
   const btnRock    = document.getElementById('btnRock');
   const btnSand    = document.getElementById('btnSand');
+  const btnSecret  = document.getElementById('btnSecret');
   const btnNext    = document.getElementById('btnNext');
   const pFill      = document.getElementById('pFill');
   const rFill      = document.getElementById('rFill');
   const pVal       = document.getElementById('pVal');
   const rVal       = document.getElementById('rVal');
 
+  /* ==================== 建立礁石 ==================== */
   const rockEls = ROCK_X.map(function (x, i) {
     const el = document.createElement('div');
     el.className = 'rock';
@@ -539,14 +788,79 @@
     return el;
   });
 
+  /* ==================== 工具函式 ==================== */
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
   function updateHUD() {
     pFill.style.width = state.p + '%';
     rFill.style.width = state.r + '%';
     pVal.textContent = state.p;
     rVal.textContent = state.r;
+    updateWeather();
+    updatePersonBadge();
   }
+
+  /* 動態天氣：根據分數切換 scene 的 class */
+  function updateWeather() {
+    scene.classList.remove('mood-rock', 'mood-sand');
+    const diff = state.p - state.r;
+    if (diff > 20) {
+      scene.classList.add('mood-rock');
+    } else if (diff < -20) {
+      scene.classList.add('mood-sand');
+    }
+  }
+
+  /* 小人頭上的狀態圖示 */
+  function updatePersonBadge() {
+    if (!personEl.classList.contains('show')) {
+      personBadge.classList.remove('show');
+      return;
+    }
+    let icon = '';
+    if (state.p >= 70 && state.r >= 70) icon = '🌟';
+    else if (state.p >= 70) icon = '🛡️';
+    else if (state.r >= 70) icon = '💖';
+    else if (state.p < 40 && state.r < 40) icon = '💧';
+
+    if (icon) {
+      personBadge.textContent = icon;
+      personBadge.classList.add('show');
+    } else {
+      personBadge.classList.remove('show');
+    }
+  }
+
+  /* 漂浮數值 */
+  function floatNumber(text, type) {
+    const el = document.createElement('div');
+    el.className = 'float-num ' + type;
+    el.textContent = text;
+    // 漂浮位置：在畫面中央偏上
+    const x = 50 + (Math.random() * 20 - 10);
+    el.style.left = x + '%';
+    el.style.top  = '35%';
+    floatLayer.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1700);
+  }
+
+  function spawnDelta(dp, dr) {
+    let delay = 0;
+    if (dp !== 0) {
+      setTimeout(function () {
+        floatNumber((dp > 0 ? '+' : '') + dp + ' 原則', dp > 0 ? 'up' : 'down');
+      }, delay);
+      delay += 200;
+    }
+    if (dr !== 0) {
+      setTimeout(function () {
+        floatNumber((dr > 0 ? '+' : '') + dr + ' 關係', dr > 0 ? 'up' : 'down');
+      }, delay);
+    }
+  }
+
   function setStatus(t) { statusEl.textContent = t; }
+
   function highlightRock(i) {
     rockEls.forEach(function (el, k) {
       el.classList.toggle('active', k === i);
@@ -554,13 +868,17 @@
     });
   }
 
+  /* ==================== 流程 ==================== */
   function startGame() {
     mainBtn.disabled = true;
     personEl.classList.add('show');
     setStatus('旅程開始！沿著小路往前走，第一塊礁石就在前方。');
     mainBtn.textContent = '向前走';
     mainBtn.onclick = walkToRock;
-    setTimeout(function () { mainBtn.disabled = false; }, 350);
+    setTimeout(function () {
+      mainBtn.disabled = false;
+      updatePersonBadge();
+    }, 350);
   }
 
   function walkToRock() {
@@ -589,9 +907,24 @@
     modalDesc.textContent = s.desc;
     choicesEl.style.display = 'flex';
     resultBox.style.display = 'none';
+    btnSecret.style.display = 'none';
 
     btnRock.innerHTML = '🪨 礁石態度（堅持原則）<span class="sub">' + s.rock.name + '</span>';
     btnSand.innerHTML = '🏖 沙灘態度（包容退讓）<span class="sub">' + s.sand.name + '</span>';
+
+    // 隱藏第三選項：第 4、5 關，且前 3 關原則與關係差距不超過 10
+    let allowSecret = false;
+    if (i >= 3 && s.secret) {
+      const diff = Math.abs(state.p - state.r);
+      if (diff <= 10) allowSecret = true;
+    }
+    if (allowSecret) {
+      btnSecret.style.display = 'flex';
+      btnSecret.innerHTML = '✨ 智慧態度（第三條路）<span class="sub">' + s.secret.name + '</span>';
+      state.secretsAvailable[i] = true;
+    } else {
+      state.secretsAvailable[i] = false;
+    }
 
     overlay.classList.add('show');
     modal.scrollTop = 0;
@@ -599,16 +932,24 @@
 
   function choose(kind) {
     const s = SCENARIOS[state.idx];
-    const opt = (kind === 'rock') ? s.rock : s.sand;
+    let opt;
+    if (kind === 'rock')   opt = s.rock;
+    if (kind === 'sand')   opt = s.sand;
+    if (kind === 'secret') opt = s.secret;
 
     state.p = clamp(state.p + opt.dp, 0, 100);
     state.r = clamp(state.r + opt.dr, 0, 100);
     updateHUD();
+    spawnDelta(opt.dp, opt.dr);
+
+    state.history.push(kind);
+    if (kind === 'secret') state.secretUsed += 1;
 
     choicesEl.style.display = 'none';
     resultBox.style.display = 'block';
 
-    resultText.textContent = '你選擇了「' + opt.name + '」。' + opt.result;
+    const label = (kind === 'rock') ? '礁石態度' : (kind === 'sand') ? '沙灘態度' : '智慧態度';
+    resultText.textContent = '你選擇了「' + label + '：' + opt.name + '」。' + opt.result;
 
     const dpTxt = (opt.dp >= 0 ? '+' : '') + opt.dp;
     const drTxt = (opt.dr >= 0 ? '+' : '') + opt.dr;
@@ -654,6 +995,18 @@
     setTimeout(showEnding, 1500);
   }
 
+  /* ==================== 稱號判定 ==================== */
+  function getTitleBadge() {
+    const h = state.history;
+    const allRock = h.length === 5 && h.every(function (x) { return x === 'rock'; });
+    const allSand = h.length === 5 && h.every(function (x) { return x === 'sand'; });
+    if (state.secretUsed >= 3) return '🏅 觀海智者';
+    if (allRock) return '🏅 鋼鐵礁石';
+    if (allSand) return '🏅 終極沙灘';
+    return '🏅 平凡旅人';
+  }
+
+  /* ==================== 結局 ==================== */
   function showEnding() {
     const diff = state.p - state.r;
     let title, emoji, color, comment, reflect;
@@ -674,7 +1027,7 @@
       title  = '智慧的觀海者';
       emoji  = '🌊';
       color  = '#0b7285';
-      comment = '你既不做拒絕浪潮的礁石，也不做任人沖刷的沙灘。該堅持時挺立，該柔軟時退讓。正如《觀海記》的結尾——海不會只有一種樣子，懂得何時做礁石、何時做沙灘，才是真正的智慧。';
+      comment = '你既不做拒絕浪潮的礁石，也不做任人沖刷的沙灘。該堅持時挺立，該柔軟時退讓。就像《觀海記》的結尾——海不會只有一種樣子，懂得什麼時候當礁石、什麼時候當沙灘，才是最厲害的本事。';
       reflect = '想一想：《觀海記》的結尾，作者站在岸邊，看見礁石與沙灘共存。你的選擇，讓你看見了怎樣的自己？';
     }
 
@@ -686,28 +1039,62 @@
       '<div class="badge">旅 程 結 束</div>' +
       '<div class="end-emoji">' + emoji + '</div>' +
       '<h3 style="color:' + color + '">' + title + '</h3>' +
+      '<div class="title-badge">' + getTitleBadge() + '</div>' +
       '<p class="end-comment">' + comment + '</p>' +
       '<div class="end-stats">' +
         '<span>原則值 <b style="color:#d64545">' + state.p + '</b></span>' +
         '<span>關係值 <b style="color:#1864ab">' + state.r + '</b></span>' +
       '</div>' +
       '<p class="end-reflect">' + reflect + '</p>' +
+
+      '<div class="reflect-btns">' +
+        '<button class="btn" id="btnReflectRock">🛡️ 我想重新審視原則</button>' +
+        '<button class="btn" id="btnReflectSand">💖 我想重新審視關係</button>' +
+      '</div>' +
+      '<div class="reflect-box" id="reflectBox">' +
+        '<span class="think-label">💡 給你的思考</span>' +
+        '<span id="reflectText"></span>' +
+      '</div>' +
+
       '<button class="btn primary" id="btnRestart">重新開始旅程</button>';
 
     overlay.classList.add('show');
     modal.scrollTop = 0;
     setStatus('旅程結束。你是「' + title + '」。');
 
+    // 綁定反思按鈕
+    const reflectBox  = document.getElementById('reflectBox');
+    const reflectText = document.getElementById('reflectText');
+
+    document.getElementById('btnReflectRock').addEventListener('click', function () {
+      reflectText.textContent = REFLECT.rock;
+      reflectBox.classList.remove('show');
+      // 觸發重新動畫
+      void reflectBox.offsetWidth;
+      reflectBox.classList.add('show');
+    });
+    document.getElementById('btnReflectSand').addEventListener('click', function () {
+      reflectText.textContent = REFLECT.sand;
+      reflectBox.classList.remove('show');
+      void reflectBox.offsetWidth;
+      reflectBox.classList.add('show');
+    });
+
     document.getElementById('btnRestart').addEventListener('click', resetGame);
   }
 
+  /* ==================== 重置 ==================== */
   function resetGame() {
     state.p = 50;
     state.r = 50;
     state.idx = 0;
     state.busy = false;
+    state.history = [];
+    state.secretsAvailable = [];
+    state.secretUsed = 0;
 
     updateHUD();
+
     overlay.classList.remove('show');
     modal.classList.remove('ending');
     sceneView.style.display = 'block';
@@ -727,12 +1114,15 @@
     mainBtn.onclick = startGame;
   }
 
+  /* ==================== 綁定 ==================== */
   btnRock.addEventListener('click', function () { choose('rock'); });
   btnSand.addEventListener('click', function () { choose('sand'); });
+  btnSecret.addEventListener('click', function () { choose('secret'); });
   btnNext.addEventListener('click', onNext);
   mainBtn.addEventListener('click', function () {
     if (mainBtn.onclick) mainBtn.onclick();
   });
+
   mainBtn.onclick = startGame;
 
   updateHUD();
