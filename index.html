@@ -1,565 +1,742 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>觀海記：礁石與沙灘</title>
-    <style>
-        /* 基礎重置 */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: "PingFang TC", "Microsoft JhengHei", "Helvetica Neue", sans-serif;
-        }
-        
-        body {
-            background-color: #2c3e50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>觀海記 · 礁石與沙灘</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
 
-        /* 遊戲主要場景 - 維持 16/9 比例並隱藏溢出 */
-        .game-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 960px;
-            aspect-ratio: 16 / 9;
-            background: linear-gradient(to bottom, 
-                #64b5f6 0%, #64b5f6 45%, /* 藍天 */
-                #1976d2 45%, #1976d2 65%, /* 大海 */
-                #f5deb3 65%, #f5deb3 100%  /* 沙灘 */
-            );
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
+  body {
+    font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Heiti TC", system-ui, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1b4a63 0%, #0d2233 55%, #061420 100%);
+    color: #e8f4ff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 14px 10px 28px;
+    -webkit-text-size-adjust: 100%;
+  }
 
-        /* 頂部進度條區域 */
-        .status-bar {
-            position: absolute;
-            top: 5%;
-            left: 5%;
-            right: 5%;
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            z-index: 10;
-        }
+  .game {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+    border: 1px solid rgba(140,200,240,.18);
+    border-radius: 22px;
+    padding: 14px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
+  }
 
-        .bar-container {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 20px;
-            padding: 8px 15px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-weight: bold;
-            font-size: 0.9em;
-        }
+  .title {
+    margin: 2px 0 12px;
+    text-align: center;
+    font-size: clamp(15px, 2.5vw, 21px);
+    letter-spacing: 3px;
+    font-weight: 800;
+    color: #bfe6ff;
+    text-shadow: 0 0 18px rgba(90,190,255,.55);
+  }
 
-        .bar-track {
-            flex: 1;
-            height: 12px;
-            background: #e0e0e0;
-            border-radius: 6px;
-            margin: 0 10px;
-            overflow: hidden;
-        }
+  .hud { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .bar-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: clamp(11px, 1.6vw, 14px);
+  }
+  .bar-row .label { width: 4.4em; text-align: right; flex: none; color: #cfe8f8; letter-spacing: 1px; }
+  .bar {
+    flex: 1; height: 15px;
+    background: rgba(0,0,0,.38);
+    border-radius: 999px; overflow: hidden;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,.6);
+  }
+  .fill {
+    height: 100%; width: 50%;
+    border-radius: 999px;
+    transition: width .75s cubic-bezier(.2,.85,.3,1);
+  }
+  .fill.p { background: linear-gradient(90deg, #ff7a7a, #c92a2a); box-shadow: 0 0 12px rgba(255,90,90,.75); }
+  .fill.r { background: linear-gradient(90deg, #63b8f8, #1864ab); box-shadow: 0 0 12px rgba(90,170,255,.75); }
+  .bar-row .val { width: 2.6em; flex: none; font-variant-numeric: tabular-nums; font-weight: 700; }
 
-        .bar-fill {
-            height: 100%;
-            width: 50%; /* 初始值 50% */
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+  .scene {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 235px;
+    max-height: 420px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #9fd8f5;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: inset 0 0 50px rgba(0,20,40,.22), 0 8px 22px rgba(0,0,0,.32);
+  }
+  .sky { position: absolute; inset: 0 0 45% 0; background: linear-gradient(180deg, #4fb3e8 0%, #8fd4f5 55%, #d8f1fd 100%); }
+  .sun {
+    position: absolute; top: 7%; right: 12%;
+    width: clamp(26px, 5vw, 52px); aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffbd6 0%, #ffe066 45%, rgba(255,214,64,0) 72%);
+    box-shadow: 0 0 40px rgba(255,224,102,.8);
+    animation: sunPulse 4s ease-in-out infinite;
+  }
+  @keyframes sunPulse { 0%,100% { opacity:.82; transform:scale(1);} 50% { opacity:1; transform:scale(1.08);} }
 
-        .fill-p { background-color: #e53935; } /* 原則值：紅色 */
-        .fill-r { background-color: #1e88e5; } /* 關係值：藍色 */
+  .cloud {
+    position: absolute; height: 4.5%;
+    background: #fff; border-radius: 999px;
+    opacity: .88; filter: blur(1px);
+    box-shadow: 0 0 18px rgba(255,255,255,.6);
+  }
+  .cloud::before {
+    content: ''; position: absolute;
+    left: 18%; bottom: 45%; width: 36%; aspect-ratio: 1;
+    background: inherit; border-radius: 50%;
+  }
+  .c1 { top: 11%; left: 7%;  width: 15%; animation: drift 26s ease-in-out infinite; }
+  .c2 { top: 23%; left: 40%; width: 11%; animation: drift 34s ease-in-out infinite; }
+  .c3 { top: 7%;  left: 64%; width: 13%; animation: drift 30s ease-in-out infinite; }
+  @keyframes drift { 0%,100% { transform: translateX(-8%);} 50% { transform: translateX(8%);} }
 
-        /* 場景元素 - 小路 */
-        .path {
-            position: absolute;
-            bottom: 12%;
-            left: 0;
-            width: 100%;
-            height: 12%;
-            background: #deb887;
-            border-radius: 50% 50% 0 0;
-        }
+  .sea {
+    position: absolute; left: 0; right: 0; top: 55%; bottom: 26%;
+    background: linear-gradient(180deg, #46a9dd 0%, #1f74ab 55%, #14568a 100%);
+  }
+  .sea::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85), rgba(255,255,255,0));
+  }
+  .sea::after {
+    content: ''; position: absolute; inset: 12% 0 auto 0; height: 40%;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,.16) 0 2px, transparent 2px 16px);
+    animation: waveShift 7s linear infinite;
+  }
+  @keyframes waveShift { from { background-position-y: 0; } to { background-position-y: 16px; } }
 
-        /* 場景元素 - 礁石 */
-        .reef {
-            position: absolute;
-            bottom: 15%;
-            width: 6%;
-            height: 8%;
-            background: #757575;
-            border-radius: 40% 60% 55% 45%;
-            box-shadow: inset -3px -3px 5px rgba(0,0,0,0.3);
-        }
+  .sand {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
+    background: linear-gradient(180deg, #f6e5b5 0%, #e8d099 55%, #d8b97a 100%);
+  }
+  .sand::after {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(170,140,85,.35) 1px, transparent 1.6px);
+    background-size: 16px 12px; opacity: .65;
+  }
 
-        /* 場景元素 - 燈塔 (終點) */
-        .lighthouse {
-            position: absolute;
-            bottom: 15%;
-            right: 5%;
-            width: 4%;
-            height: 25%;
-            background: repeating-linear-gradient(
-                to bottom,
-                #fff,
-                #fff 20%,
-                #d32f2f 20%,
-                #d32f2f 40%
-            );
-            border-radius: 5px 5px 0 0;
-        }
-        .lighthouse::before {
-            content: '';
-            position: absolute;
-            top: -15%;
-            left: -25%;
-            width: 150%;
-            height: 15%;
-            background: #ffeb3b;
-            border-radius: 50%;
-            box-shadow: 0 0 15px 5px rgba(255, 235, 59, 0.7);
-        }
+  .path {
+    position: absolute; left: -3%; right: -3%; bottom: 19.5%; height: 8%;
+    background: linear-gradient(180deg, #fbeec6, #e6d09b);
+    border-radius: 999px; opacity: .95;
+    box-shadow: 0 3px 0 rgba(150,120,70,.28), inset 0 1px 0 rgba(255,255,255,.6);
+    z-index: 3;
+  }
 
-        /* 場景元素 - 小人 (學生) */
-        .character {
-            position: absolute;
-            bottom: 22%;
-            left: 5%; /* 起點 */
-            width: 3%;
-            height: 12%;
-            transition: left 1s ease-in-out;
-            z-index: 5;
-        }
-        
-        .char-head {
-            width: 100%;
-            padding-bottom: 100%; /* 圓形 */
-            background: #ffccbc;
-            border-radius: 50%;
-            margin-bottom: 2px;
-        }
-        
-        .char-body {
-            width: 80%;
-            height: 60%;
-            background: #4caf50;
-            margin: 0 auto;
-            border-radius: 5px 5px 0 0;
-        }
+  .lighthouse {
+    position: absolute; left: 92%; bottom: 25%;
+    width: clamp(16px, 2.6vw, 32px); aspect-ratio: 1 / 3;
+    transform: translateX(-50%); z-index: 4;
+  }
+  .lighthouse .tower {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(180deg, #ffffff 0 20%, #e74c3c 20% 40%);
+    clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%);
+    border-radius: 4px 4px 2px 2px;
+    box-shadow: inset -3px 0 6px rgba(0,0,0,.18);
+  }
+  .lighthouse .lamp {
+    position: absolute; left: 50%; top: -22%;
+    transform: translateX(-50%);
+    width: 62%; aspect-ratio: 1 / 1.1;
+    background: radial-gradient(circle at 50% 40%, #fffbe0, #ffd93d 55%, #f0a500);
+    border-radius: 22% 22% 12% 12%;
+    box-shadow: 0 0 20px 7px rgba(255,222,89,.7);
+    animation: lampGlow 2.4s ease-in-out infinite;
+  }
+  .lighthouse .roof {
+    position: absolute; left: 50%; top: -40%;
+    transform: translateX(-50%);
+    width: 80%; aspect-ratio: 2 / 1;
+    background: #2c3e50;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+  @keyframes lampGlow { 0%,100% { opacity:.8; } 50% { opacity:1; } }
 
-        /* 主按鈕 (遊戲場景內) */
-        .main-btn {
-            position: absolute;
-            bottom: 5%;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 30px;
-            font-size: 1.1em;
-            font-weight: bold;
-            color: #fff;
-            background: #ff9800;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            z-index: 20;
-            transition: transform 0.1s;
-        }
-        .main-btn:active { transform: translateX(-50%) scale(0.95); }
+  .rock {
+    position: absolute; bottom: 24%;
+    width: clamp(24px, 4.4vw, 52px);
+    aspect-ratio: 1.35 / 1;
+    transform: translateX(-50%);
+    background: radial-gradient(circle at 32% 22%, #9c8d7e 0%, #6b5d50 45%, #483d34 100%);
+    border-radius: 46% 54% 38% 42% / 62% 66% 34% 38%;
+    box-shadow: inset -3px -4px 6px rgba(0,0,0,.35),
+                inset  3px  3px 6px rgba(255,255,255,.15),
+                0 5px 10px rgba(0,0,0,.3);
+    transition: box-shadow .3s, filter .3s, opacity .4s;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5;
+  }
+  .rock .num {
+    font-size: clamp(8px, 1.2vw, 13px);
+    font-weight: 800;
+    color: rgba(255,255,255,.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,.65);
+    margin-top: 8%;
+  }
+  .rock.active {
+    box-shadow: 0 0 0 3px rgba(255,228,140,.9),
+                0 0 24px 7px rgba(255,205,80,.65),
+                inset -3px -4px 6px rgba(0,0,0,.35);
+    filter: brightness(1.15);
+  }
+  .rock.done { opacity: .5; filter: saturate(.55); }
 
-        /* ======== 重要的 UI 與顯示要求：彈出視窗 ======== */
-        .modal-overlay {
-            position: fixed; /* 覆蓋整個瀏覽器視窗，避免 overflow: hidden 裁切 */
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0.3s, opacity 0.3s ease; /* 淡入淡出順暢 */
-            z-index: 9999;
-        }
+  .person {
+    position: absolute; bottom: 25%; left: 5%;
+    width: clamp(18px, 2.8vw, 34px);
+    transform: translateX(-50%);
+    transition: left .95s cubic-bezier(.45,.05,.35,1), opacity .4s ease;
+    opacity: 0; z-index: 8; pointer-events: none;
+  }
+  .person.show { opacity: 1; }
+  .person-inner {
+    display: flex; flex-direction: column; align-items: center;
+    animation: bob 1.6s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-7%);} }
+  .person .head {
+    position: relative; width: 58%; aspect-ratio: 1;
+    background: #f8d3a5; border: 2px solid #c99a6a; border-radius: 50%;
+  }
+  .person .head::after {
+    content: ''; position: absolute; top: -20%; left: -7%;
+    width: 114%; height: 56%; background: #3d2b1f;
+    border-radius: 50% 50% 30% 30%;
+  }
+  .person .body {
+    width: 78%; aspect-ratio: 1 / 1.05;
+    margin-top: -5%;
+    background: linear-gradient(180deg, #4da3f0, #2b6cb0);
+    border-radius: 38% 38% 22% 22%;
+  }
+  .person .legs { display: flex; gap: 14%; width: 58%; margin-top: -3%; }
+  .person .leg { flex: 1; aspect-ratio: 1 / 1.7; background: #2f4f7a; border-radius: 0 0 42% 42%; }
 
-        .modal-overlay.active {
-            visibility: visible;
-            opacity: 1;
-        }
+  /* ============================================================
+     對話遮罩：固定覆蓋整個視窗
+     ============================================================ */
+  #overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+    background: rgba(5, 20, 34, .85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s ease, visibility .3s;
+  }
+  #overlay.show { opacity: 1; visibility: visible; }
 
-        .modal-content {
-            background: #fff;
-            width: 90%;
-            max-width: 780px; /* 對話框夠大 */
-            max-height: calc(100dvh - 40px); /* 避免手機網址列影響，且內容過長可滾動 */
-            overflow-y: auto;
-            border-radius: 12px;
-            padding: 30px 25px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            text-align: center;
-        }
+  #modal {
+    width: 100%;
+    max-width: 780px;
+    /* 對話框本體最高到視窗高度減 40px，並允許內部滾動 */
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: #ffffff;
+    color: #16324a;
+    border-radius: 22px;
+    padding: 30px 28px;
+    box-shadow: 0 25px 80px rgba(0,0,0,.75);
+    font-size: clamp(16px, 2vw, 19px);
+    line-height: 1.8;
+  }
+  #modal::-webkit-scrollbar { width: 10px; }
+  #modal::-webkit-scrollbar-thumb { background: #b3d4e8; border-radius: 5px; }
+  #modal::-webkit-scrollbar-track { background: transparent; }
 
-        .modal-title {
-            font-size: 1.4em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 15px;
-        }
+  #modal h3 {
+    margin: 0 0 16px;
+    font-size: 1.4em;
+    color: #0b5c8a;
+    border-left: 5px solid #3aa0d8;
+    padding-left: 14px;
+    line-height: 1.4;
+  }
+  #modal p { margin: 0 0 16px; }
 
-        .modal-desc {
-            font-size: 1.05em;
-            color: #555;
-            line-height: 1.6;
-            margin-bottom: 25px;
-            text-align: left;
-        }
+  /* ============================================================
+     關鍵修正：按鈕設定 flex-shrink: 0，絕對不會被壓扁
+     ============================================================ */
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .choice {
+    flex-shrink: 0;            /* 不被壓縮 */
+    min-height: 80px;          /* 至少 80px 高 */
+    font-family: inherit;
+    font-size: 1.08em;
+    font-weight: 700;
+    padding: 20px 24px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+    color: #fff;
+    line-height: 1.55;
+    transition: transform .15s, filter .15s;
+    width: 100%;
+    word-break: break-word;
+    white-space: normal;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .choice .sub {
+    display: block;
+    font-size: .9em;
+    font-weight: 500;
+    opacity: .92;
+    margin-top: 6px;
+  }
+  .choice.rock { background: linear-gradient(135deg, #8a6f5c, #4a372b); }
+  .choice.sand { background: linear-gradient(135deg, #f5c463, #e09420); color: #3a2500; }
+  .choice:hover  { transform: translateY(-2px); filter: brightness(1.08); }
+  .choice:active { transform: translateY(0) scale(.985); }
 
-        /* 選項按鈕區 */
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px; /* 按鈕之間間距約 10px */
-        }
+  #resultText { font-weight: 700; color: #0b5c8a; }
+  .delta { font-size: 1em; color: #48697f; margin-bottom: 20px; }
+  .delta b { font-size: 1.15em; }
+  .delta .up   { color: #1f9d55; }
+  .delta .down { color: #d64545; }
 
-        .btn-choice {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 52px; /* 按鈕不要太大，但也夠好點按 */
-            padding: 12px 18px;
-            font-size: 0.98em;
-            flex-shrink: 0; /* 絕對不能被壓縮或裁切 */
-            background: #f8f9fa;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            color: #333;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: left;
-            line-height: 1.4;
-        }
+  .btn {
+    flex-shrink: 0;
+    font-family: inherit;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 800;
+    letter-spacing: 1px;
+    transition: transform .15s, filter .15s;
+  }
+  .btn.primary {
+    display: block;
+    width: 100%;
+    padding: 18px 24px;
+    font-size: 1.05em;
+    color: #fff;
+    background: linear-gradient(135deg, #29b6c9, #0b7285);
+    margin-top: 20px;
+  }
+  .btn.primary:hover:not(:disabled)  { transform: translateY(-2px); filter: brightness(1.08); }
+  .btn.primary:active:not(:disabled) { transform: translateY(0) scale(.985); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
 
-        .btn-choice:hover { background: #e9ecef; border-color: #adb5bd; }
-        .btn-choice:active { transform: scale(0.98); }
+  .footer { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .status {
+    font-size: clamp(12px, 1.6vw, 14px);
+    color: #9fd0ec;
+    text-align: center;
+    min-height: 1.5em;
+    line-height: 1.55;
+  }
+  .footer .btn.primary { max-width: 320px; margin: 0 auto; font-size: 1em; padding: 12px 16px; }
 
-        .btn-reef-style { border-left: 5px solid #e53935; }
-        .btn-beach-style { border-left: 5px solid #1e88e5; }
-
-        .btn-continue {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 12px 30px;
-            font-size: 1.1em;
-            background: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .ending-text {
-            font-size: 1.1em;
-            line-height: 1.6;
-            color: #444;
-            text-align: left;
-            background: #f1f8e9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-
-        /* 響應式調整 */
-        @media (max-width: 520px) {
-            .modal-content {
-                width: 95%; /* 手機上幾乎全螢幕 */
-                padding: 20px 15px;
-            }
-            .status-bar { flex-direction: column; gap: 8px; }
-            .bar-container { padding: 5px 10px; }
-            .game-wrapper {
-                aspect-ratio: auto;
-                height: 100vh; /* 在極小螢幕可切換為充滿畫面 */
-            }
-            .character { height: 8%; width: 5%; }
-        }
-    </style>
+  #modal.ending { text-align: center; }
+  .ending .badge {
+    display: inline-block;
+    font-size: .85em;
+    letter-spacing: 3px;
+    padding: 6px 18px;
+    border-radius: 999px;
+    background: #e2f0fb;
+    color: #0b5c8a;
+    margin-bottom: 14px;
+  }
+  .ending .end-emoji { font-size: 3em; line-height: 1; margin-bottom: 8px; }
+  .ending h3 {
+    border: none; padding: 0; margin: 0 0 14px;
+    font-size: 1.8em; letter-spacing: 4px;
+  }
+  .ending .end-comment {
+    text-align: left;
+    background: #f4faff;
+    border-left: 5px solid #7fc7ee;
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: #26485f;
+  }
+  .ending .end-reflect {
+    text-align: left;
+    font-size: .95em;
+    color: #5b7f96;
+    margin-top: 14px;
+  }
+  .ending .end-stats {
+    display: flex;
+    justify-content: center;
+    gap: 34px;
+    margin: 18px 0 6px;
+    font-size: 1em;
+    color: #48697f;
+  }
+  .ending .end-stats b { font-size: 1.35em; }
+  .ending .btn.primary { margin-top: 18px; }
+</style>
 </head>
 <body>
 
-    <!-- 遊戲場景 -->
-    <div class="game-wrapper">
-        <!-- 狀態列 -->
-        <div class="status-bar">
-            <div class="bar-container">
-                <span style="color:#e53935">原則值</span>
-                <div class="bar-track"><div class="bar-fill fill-p" id="bar-p"></div></div>
-                <span id="score-p">50</span>
-            </div>
-            <div class="bar-container">
-                <span style="color:#1e88e5">關係值</span>
-                <div class="bar-track"><div class="bar-fill fill-r" id="bar-r"></div></div>
-                <span id="score-r">50</span>
-            </div>
-        </div>
+<div class="game">
+  <h1 class="title">🌊 觀海記 · 礁石與沙灘</h1>
 
-        <!-- 背景路徑與礁石 (動態生成) -->
-        <div class="path"></div>
-        <!-- 5 塊礁石的位置: 20%, 35%, 50%, 65%, 80% -->
-        <div class="reef" style="left: 20%;"></div>
-        <div class="reef" style="left: 35%;"></div>
-        <div class="reef" style="left: 50%;"></div>
-        <div class="reef" style="left: 65%;"></div>
-        <div class="reef" style="left: 80%;"></div>
-        <div class="lighthouse"></div>
+  <div class="hud">
+    <div class="bar-row">
+      <span class="label">原則值</span>
+      <div class="bar"><div class="fill p" id="pFill"></div></div>
+      <span class="val" id="pVal">50</span>
+    </div>
+    <div class="bar-row">
+      <span class="label">關係值</span>
+      <div class="bar"><div class="fill r" id="rFill"></div></div>
+      <span class="val" id="rVal">50</span>
+    </div>
+  </div>
 
-        <!-- 小人 -->
-        <div class="character" id="player">
-            <div class="char-head"></div>
-            <div class="char-body"></div>
-        </div>
+  <div class="scene" id="scene">
+    <div class="sky"></div>
+    <div class="sun"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="sea"></div>
+    <div class="sand"></div>
+    <div class="path"></div>
 
-        <button class="main-btn" id="action-btn" onclick="startJourney()">開始旅程</button>
+    <div class="lighthouse">
+      <div class="tower"></div>
+      <div class="lamp"></div>
+      <div class="roof"></div>
     </div>
 
-    <!-- 彈出視窗：情境選擇 (position: fixed 覆蓋全螢幕) -->
-    <div class="modal-overlay" id="modal-scenario">
-        <div class="modal-content">
-            <div class="modal-title" id="scenario-title">情境標題</div>
-            <div class="modal-desc" id="scenario-desc">情境描述...</div>
-            <div class="btn-group">
-                <button class="btn-choice btn-reef-style" onclick="makeChoice('A')"><strong style="color:#e53935">礁石態度：</strong><span id="btn-text-a"></span></button>
-                <button class="btn-choice btn-beach-style" onclick="makeChoice('B')"><strong style="color:#1e88e5">沙灘態度：</strong><span id="btn-text-b"></span></button>
-            </div>
-        </div>
+    <div class="person" id="person">
+      <div class="person-inner">
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="legs"><div class="leg"></div><div class="leg"></div></div>
+      </div>
     </div>
+  </div>
 
-    <!-- 彈出視窗：結果回饋 -->
-    <div class="modal-overlay" id="modal-result">
-        <div class="modal-content">
-            <div class="modal-title">選擇結果</div>
-            <div class="modal-desc" id="result-desc" style="text-align: center; font-weight: bold;">結果文字...</div>
-            <div style="font-size: 0.9em; color: #666;">
-                原則值 <span id="res-change-p"></span> / 關係值 <span id="res-change-r"></span>
-            </div>
-            <button class="btn-continue" onclick="continueJourney()">繼續前進</button>
-        </div>
+  <div class="footer">
+    <div class="status" id="status">點擊「開始旅程」，展開你的觀海之路。</div>
+    <button class="btn primary" id="mainBtn">開始旅程</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="modal">
+    <div id="sceneView">
+      <h3 id="modalTitle"></h3>
+      <p id="modalDesc"></p>
+      <div class="choices" id="choices">
+        <button class="choice rock" id="btnRock"></button>
+        <button class="choice sand" id="btnSand"></button>
+      </div>
+      <div id="resultBox" style="display:none">
+        <p id="resultText"></p>
+        <p class="delta" id="resultDelta"></p>
+        <button class="btn primary" id="btnNext">繼續前進 →</button>
+      </div>
     </div>
+    <div id="endView" style="display:none"></div>
+  </div>
+</div>
 
-    <!-- 彈出視窗：結局卡 -->
-    <div class="modal-overlay" id="modal-ending">
-        <div class="modal-content">
-            <div class="modal-title" style="font-size: 1.8em; color: #2e7d32;" id="ending-title">結局標題</div>
-            <div class="modal-desc" style="text-align: center; font-weight:bold;">
-                最終分數：原則 <span id="final-p"></span> | 關係 <span id="final-r"></span>
-            </div>
-            <div class="ending-text" id="ending-desc">評語與反思...</div>
-            <button class="btn-continue" onclick="location.reload()">重新體驗</button>
-        </div>
-    </div>
+<script>
+(function () {
+  'use strict';
 
-    <script>
-        // --- 遊戲資料 ---
-        // 初始設定分數與步驟
-        let pScore = 50; // 原則值
-        let rScore = 50; // 關係值
-        let currentStep = -1; // -1: 準備, 0~4: 礁石, 5: 燈塔
+  const SCENARIOS = [
+    {
+      title: '第 1 塊礁石：考試被誤會作弊',
+      desc: '段考時，隔壁同學的答案卡不小心滑到你的桌邊。監考老師走過來，懷疑你偷看，全班的目光都集中在你身上……',
+      rock: { name: '據理力爭', result: '你當場向老師說明經過。老師查清後還你清白，但同學覺得你「太剛硬、不好相處」。', dp: 15, dr: -10 },
+      sand: { name: '先接受處罰', result: '你默默接受扣分。事後老師發現是誤會並向你道歉，但你的成績已經受到影響。', dp: -5, dr: 15 }
+    },
+    {
+      title: '第 2 塊礁石：好朋友借錢不還',
+      desc: '好朋友跟你借了一筆錢，說好下週還，結果一拖再拖，好像忘了這件事。你們每天還是會一起打球、一起吃午餐……',
+      rock: { name: '直接攤牌', result: '你把話講清楚，錢要回來了。但朋友的臉色變得很難看，你們之間出現了一道裂痕。', dp: 15, dr: -10 },
+      sand: { name: '暫時不提', result: '你把話吞了回去。錢大概拿不回來了，但你們的友誼看起來還是和以前一樣。', dp: -5, dr: 15 }
+    },
+    {
+      title: '第 3 塊礁石：被同學排擠',
+      desc: '班上幾個同學開始刻意不找你講話，分組時也沒有人要跟你一組。你隱約知道，他們覺得你「跟大家不一樣」。',
+      rock: { name: '不妥協，做自己', result: '你照自己的方式生活，不刻意討好任何人。日子孤獨，但心裡很自在。', dp: 15, dr: -10 },
+      sand: { name: '主動示好', result: '你主動找他們聊天、配合他們的喜好。你融入了小圈圈，但心裡總有點違背自己的感覺。', dp: -5, dr: 15 }
+    },
+    {
+      title: '第 4 塊礁石：父母偷看日記',
+      desc: '你發現日記本被翻動過，位置和折角都跟你放的不一樣。媽媽說：「我們只是關心你。」',
+      rock: { name: '嚴肅抗議', result: '你很認真地告訴他們這是你的隱私。父母很生氣，但從此之後，他們真的不敢再偷看了。', dp: 15, dr: -10 },
+      sand: { name: '理解父母', result: '你選擇體諒他們的擔心，沒有多說什麼。父母很感動，但他們的操心似乎沒有減少。', dp: -5, dr: 15 }
+    },
+    {
+      title: '第 5 塊礁石：分組報告被隊友拖累',
+      desc: '分組報告的前一天晚上，你才發現隊友幾乎什麼都沒做。明天就要上台了，你的名字就寫在報告的第一頁。',
+      rock: { name: '向老師舉報', result: '你把每個人的分工如實告訴老師。隊友被扣分，你也因此被班上一些人孤立。', dp: 15, dr: -10 },
+      sand: { name: '自己多做一點', result: '你熬夜把整份報告補完。報告順利交出去了，但你累得幾乎說不出話。', dp: -5, dr: 15 }
+    }
+  ];
 
-        // 小人在各階段的左側位置百分比 (起點 5%，礁石 20~80%，終點 90%)
-        const positions = ["20%", "35%", "50%", "65%", "80%", "90%"];
+  const START_X      = 5;
+  const ROCK_X       = [20, 34, 48, 62, 76];
+  const APPROACH_GAP = 5.5;
+  const PASS_GAP     = 5.5;
+  const END_X        = 86;
 
-        // 5 個情境資料
-        const scenarios = [
-            {
-                title: "情境 1：考試被誤會作弊",
-                desc: "你在考試時筆掉在地上，彎腰去撿，老師卻以為你在偷看小抄。面對這個誤會，你會怎麼做？",
-                optA: "據理力爭，堅持自己絕對沒有作弊，要求老師查明。",
-                optB: "先接受處罰，事後再找機會向老師私下解釋。",
-                resA: "老師查清了，但同學覺得你太剛硬，有些不好親近。",
-                resB: "老師發現誤會，但你的平時成績已經稍微受到了影響。",
-                changeA: { p: 15, r: -10 },
-                changeB: { p: -5, r: 15 }
-            },
-            {
-                title: "情境 2：好朋友借錢不還",
-                desc: "好朋友借了你一筆錢，答應上週還卻一直沒提。你急需用錢，你會：",
-                optA: "直接攤牌，要求對方立刻還錢。",
-                optB: "為了不傷和氣，暫時不提，自己想別的辦法。",
-                resA: "錢要回來了，但你們的友誼出現了裂痕。",
-                resB: "錢沒了，但你們的友誼還在。",
-                changeA: { p: 15, r: -10 },
-                changeB: { p: -5, r: 15 }
-            },
-            {
-                title: "情境 3：被同學排擠",
-                desc: "班上一個小團體突然開始排擠你，他們在討論事情時刻意忽略你。你會：",
-                optA: "不妥協，堅持做自己，不需要勉強迎合他們。",
-                optB: "主動示好，買些小點心請他們吃以緩和氣氛。",
-                resA: "你感到有些孤獨，但內心十分自在坦蕩。",
-                resB: "你勉強融入了他們，但感覺違背了自己的心意。",
-                changeA: { p: 15, r: -10 },
-                changeB: { p: -5, r: 15 }
-            },
-            {
-                title: "情境 4：父母偷看日記",
-                desc: "你發現父母私自翻看了你的日記本。你非常生氣，你會：",
-                optA: "嚴肅抗議，大聲表達不滿並要求他們道歉。",
-                optB: "試著理解父母是出自關心，心平氣和地與他們溝通。",
-                resA: "父母生氣了，但以後確實不敢再隨便偷看。",
-                resB: "父母很感動你的懂事，但可能還是會暗中擔心你。",
-                changeA: { p: 15, r: -10 },
-                changeB: { p: -5, r: 15 }
-            },
-            {
-                title: "情境 5：分組報告被隊友拖累",
-                desc: "分組報告的隊友什麼都不做，眼看死線將至。你會：",
-                optA: "直接向老師舉報隊友的行為，要求重新分組或獨立評分。",
-                optB: "為了分數，自己多做一點把報告趕完。",
-                resA: "隊友被扣分了，但你卻被班上其他人視為「會告狀的人」而被孤立。",
-                resB: "報告順利完成並拿了高分，但你感到非常疲憊與委屈。",
-                changeA: { p: 15, r: -10 },
-                changeB: { p: -5, r: 15 }
-            }
-        ];
+  const state = { p: 50, r: 50, idx: 0, busy: false };
 
-        // --- 介面更新與遊戲邏輯 ---
+  const scene      = document.getElementById('scene');
+  const personEl   = document.getElementById('person');
+  const mainBtn    = document.getElementById('mainBtn');
+  const statusEl   = document.getElementById('status');
+  const overlay    = document.getElementById('overlay');
+  const modal      = document.getElementById('modal');
+  const sceneView  = document.getElementById('sceneView');
+  const endView    = document.getElementById('endView');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalDesc  = document.getElementById('modalDesc');
+  const choicesEl  = document.getElementById('choices');
+  const resultBox  = document.getElementById('resultBox');
+  const resultText = document.getElementById('resultText');
+  const resultDelta= document.getElementById('resultDelta');
+  const btnRock    = document.getElementById('btnRock');
+  const btnSand    = document.getElementById('btnSand');
+  const btnNext    = document.getElementById('btnNext');
+  const pFill      = document.getElementById('pFill');
+  const rFill      = document.getElementById('rFill');
+  const pVal       = document.getElementById('pVal');
+  const rVal       = document.getElementById('rVal');
 
-        // 更新頂部分數與進度條 (帶動畫)
-        function updateScore() {
-            // 限制分數在 0~100 之間
-            pScore = Math.max(0, Math.min(100, pScore));
-            rScore = Math.max(0, Math.min(100, rScore));
-            
-            document.getElementById('score-p').innerText = pScore;
-            document.getElementById('score-r').innerText = rScore;
-            
-            // 改變 CSS 寬度觸發 transition
-            document.getElementById('bar-p').style.width = pScore + '%';
-            document.getElementById('bar-r').style.width = rScore + '%';
-        }
+  const rockEls = ROCK_X.map(function (x, i) {
+    const el = document.createElement('div');
+    el.className = 'rock';
+    el.style.left = x + '%';
+    el.innerHTML = '<span class="num">' + (i + 1) + '</span>';
+    scene.appendChild(el);
+    return el;
+  });
 
-        // 開啟遮罩視窗
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
-        }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function updateHUD() {
+    pFill.style.width = state.p + '%';
+    rFill.style.width = state.r + '%';
+    pVal.textContent = state.p;
+    rVal.textContent = state.r;
+  }
+  function setStatus(t) { statusEl.textContent = t; }
+  function highlightRock(i) {
+    rockEls.forEach(function (el, k) {
+      el.classList.toggle('active', k === i);
+      el.classList.toggle('done', k < i);
+    });
+  }
 
-        // 關閉遮罩視窗
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
+  function startGame() {
+    mainBtn.disabled = true;
+    personEl.classList.add('show');
+    setStatus('旅程開始！沿著小路往前走，第一塊礁石就在前方。');
+    mainBtn.textContent = '向前走';
+    mainBtn.onclick = walkToRock;
+    setTimeout(function () { mainBtn.disabled = false; }, 350);
+  }
 
-        // 點擊開始旅程
-        function startJourney() {
-            let btn = document.getElementById('action-btn');
-            btn.style.display = 'none'; // 隱藏按鈕
-            
-            // 小人移動到第一關
-            currentStep = 0;
-            document.getElementById('player').style.left = positions[currentStep];
-            
-            // 等待移動動畫結束後顯示情境
-            setTimeout(() => {
-                showScenario();
-            }, 1000);
-        }
+  function walkToRock() {
+    if (state.busy || state.idx >= SCENARIOS.length) return;
+    state.busy = true;
+    mainBtn.disabled = true;
 
-        // 顯示當前情境
-        function showScenario() {
-            let data = scenarios[currentStep];
-            document.getElementById('scenario-title').innerText = data.title;
-            document.getElementById('scenario-desc').innerText = data.desc;
-            document.getElementById('btn-text-a').innerText = data.optA;
-            document.getElementById('btn-text-b').innerText = data.optB;
-            openModal('modal-scenario');
-        }
+    const i = state.idx;
+    highlightRock(i);
+    personEl.style.left = (ROCK_X[i] - APPROACH_GAP) + '%';
+    setStatus('走向第 ' + (i + 1) + ' 塊礁石……');
 
-        // 處理玩家選擇
-        function makeChoice(choice) {
-            let data = scenarios[currentStep];
-            let resultText = "";
-            let change = {};
+    setTimeout(function () {
+      state.busy = false;
+      openDialog(i);
+    }, 1000);
+  }
 
-            if (choice === 'A') {
-                resultText = data.resA;
-                change = data.changeA;
-            } else {
-                resultText = data.resB;
-                change = data.changeB;
-            }
+  function openDialog(i) {
+    const s = SCENARIOS[i];
+    modal.classList.remove('ending');
+    sceneView.style.display = 'block';
+    endView.style.display = 'none';
 
-            // 更新分數
-            pScore += change.p;
-            rScore += change.r;
-            updateScore();
+    modalTitle.textContent = s.title;
+    modalDesc.textContent = s.desc;
+    choicesEl.style.display = 'flex';
+    resultBox.style.display = 'none';
 
-            // 準備結果視窗內容
-            document.getElementById('result-desc').innerText = resultText;
-            document.getElementById('res-change-p').innerText = (change.p > 0 ? "+" : "") + change.p;
-            document.getElementById('res-change-r').innerText = (change.r > 0 ? "+" : "") + change.r;
-            
-            // 替換顏色
-            document.getElementById('res-change-p').style.color = change.p > 0 ? "#e53935" : "#757575";
-            document.getElementById('res-change-r').style.color = change.r > 0 ? "#1e88e5" : "#757575";
+    btnRock.innerHTML = '🪨 礁石態度（堅持原則）<span class="sub">' + s.rock.name + '</span>';
+    btnSand.innerHTML = '🏖 沙灘態度（包容退讓）<span class="sub">' + s.sand.name + '</span>';
 
-            closeModal('modal-scenario');
-            setTimeout(() => {
-                openModal('modal-result');
-            }, 300); // 稍微延遲讓前一個視窗淡出
-        }
+    overlay.classList.add('show');
+    modal.scrollTop = 0;
+  }
 
-        // 繼續前進到下一關或終點
-        function continueJourney() {
-            closeModal('modal-result');
-            currentStep++;
-            
-            // 小人移動
-            document.getElementById('player').style.left = positions[currentStep];
+  function choose(kind) {
+    const s = SCENARIOS[state.idx];
+    const opt = (kind === 'rock') ? s.rock : s.sand;
 
-            if (currentStep < 5) {
-                // 還沒走完，等動畫後顯示下一題
-                setTimeout(() => {
-                    showScenario();
-                }, 1000);
-            } else {
-                // 走到終點 (燈塔)，顯示結局
-                setTimeout(() => {
-                    showEnding();
-                }, 1200);
-            }
-        }
+    state.p = clamp(state.p + opt.dp, 0, 100);
+    state.r = clamp(state.r + opt.dr, 0, 100);
+    updateHUD();
 
-        // 判定與顯示結局
-        function showEnding() {
-            let title = "";
-            let desc = "";
-            let diff = pScore - rScore;
+    choicesEl.style.display = 'none';
+    resultBox.style.display = 'block';
 
-            if (diff > 20) {
-                title = "結局：孤獨的礁石";
-                desc = "你像一塊堅硬的礁石，在浪潮中堅守自我。雖然保全了原則，卻也難免感到孤獨。反思《觀海記》的結尾，我們是否能在堅持與包容間找到平衡？";
-            } else if (rScore - pScore > 20) {
-                title = "結局：被沖刷的沙灘";
-                desc = "你像一片包容的沙灘，退讓與妥協讓你維繫了關係，但有時卻失去了原本的形狀與底線。反思《觀海記》的結尾，真正的溫柔是否也需要堅定的力量？";
-            } else {
-                title = "結局：智慧的觀海者";
-                desc = "你是充滿智慧的觀海者！懂得在原則與關係之間進退有度，既不剛硬傷人，也不軟弱妥協。正如《觀海記》所啟發，人生正是在礁石與沙灘之間，找到最美的海岸線。";
-            }
+    resultText.textContent = '你選擇了「' + opt.name + '」。' + opt.result;
 
-            document.getElementById('final-p').innerText = pScore;
-            document.getElementById('final-r').innerText = rScore;
-            document.getElementById('ending-title').innerText = title;
-            document.getElementById('ending-desc').innerText = desc;
-            
-            openModal('modal-ending');
-        }
-    </script>
+    const dpTxt = (opt.dp >= 0 ? '+' : '') + opt.dp;
+    const drTxt = (opt.dr >= 0 ? '+' : '') + opt.dr;
+    resultDelta.innerHTML =
+      '原則值 <b class="' + (opt.dp >= 0 ? 'up' : 'down') + '">' + dpTxt + '</b>' +
+      '　｜　關係值 <b class="' + (opt.dr >= 0 ? 'up' : 'down') + '">' + drTxt + '</b>';
+
+    btnNext.textContent = (state.idx === SCENARIOS.length - 1)
+      ? '繼續前進 → 燈塔'
+      : '繼續前進 →';
+
+    modal.scrollTop = 0;
+  }
+
+  function onNext() {
+    overlay.classList.remove('show');
+    const i = state.idx;
+    rockEls[i].classList.remove('active');
+    rockEls[i].classList.add('done');
+    personEl.style.left = (ROCK_X[i] + PASS_GAP) + '%';
+    state.idx += 1;
+    state.busy = false;
+
+    if (state.idx < SCENARIOS.length) {
+      setStatus('越過了礁石。前方還有 ' + (SCENARIOS.length - state.idx) + ' 塊礁石。');
+      mainBtn.textContent = '向前走';
+      mainBtn.disabled = false;
+      mainBtn.onclick = walkToRock;
+    } else {
+      setStatus('五塊礁石都走過了。燈塔就在前方。');
+      mainBtn.textContent = '走向燈塔';
+      mainBtn.disabled = false;
+      mainBtn.onclick = walkToEnd;
+    }
+  }
+
+  function walkToEnd() {
+    if (state.busy) return;
+    state.busy = true;
+    mainBtn.disabled = true;
+    personEl.style.left = END_X + '%';
+    setStatus('沿著海岸，走向燈塔……');
+    setTimeout(showEnding, 1500);
+  }
+
+  function showEnding() {
+    const diff = state.p - state.r;
+    let title, emoji, color, comment, reflect;
+
+    if (diff > 20) {
+      title  = '孤獨的礁石';
+      emoji  = '🪨';
+      color  = '#6b5344';
+      comment = '你像海中的礁石，風浪再大也不改變形狀。原則讓你看清自己，卻也讓身邊的人難以靠近。真正的堅持，不是拒絕所有海浪，而是知道哪些浪值得讓路。';
+      reflect = '想一想：《觀海記》的結尾，作者站在岸邊，看著礁石與沙灘共存——如果這片海只剩下礁石，它還會好看嗎？';
+    } else if (diff < -20) {
+      title  = '被沖刷的沙灘';
+      emoji  = '🏖';
+      color  = '#c8891a';
+      comment = '你像柔軟的沙灘，願意承接每一道浪。關係讓你被喜愛，卻也在一次次退讓中，慢慢失去了自己的形狀。學會說「不」，才能守住心裡的那道岸線。';
+      reflect = '想一想：《觀海記》的結尾，作者說沙灘記住了每一道浪的形狀——可是潮水退去之後，沙灘還剩下什麼呢？';
+    } else {
+      title  = '智慧的觀海者';
+      emoji  = '🌊';
+      color  = '#0b7285';
+      comment = '你既不做拒絕浪潮的礁石，也不做任人沖刷的沙灘。該堅持時挺立，該柔軟時退讓。正如《觀海記》的結尾——海不會只有一種樣子，懂得何時做礁石、何時做沙灘，才是真正的智慧。';
+      reflect = '想一想：《觀海記》的結尾，作者站在岸邊，看見礁石與沙灘共存。你的選擇，讓你看見了怎樣的自己？';
+    }
+
+    modal.classList.add('ending');
+    sceneView.style.display = 'none';
+    endView.style.display = 'block';
+
+    endView.innerHTML =
+      '<div class="badge">旅 程 結 束</div>' +
+      '<div class="end-emoji">' + emoji + '</div>' +
+      '<h3 style="color:' + color + '">' + title + '</h3>' +
+      '<p class="end-comment">' + comment + '</p>' +
+      '<div class="end-stats">' +
+        '<span>原則值 <b style="color:#d64545">' + state.p + '</b></span>' +
+        '<span>關係值 <b style="color:#1864ab">' + state.r + '</b></span>' +
+      '</div>' +
+      '<p class="end-reflect">' + reflect + '</p>' +
+      '<button class="btn primary" id="btnRestart">重新開始旅程</button>';
+
+    overlay.classList.add('show');
+    modal.scrollTop = 0;
+    setStatus('旅程結束。你是「' + title + '」。');
+
+    document.getElementById('btnRestart').addEventListener('click', resetGame);
+  }
+
+  function resetGame() {
+    state.p = 50;
+    state.r = 50;
+    state.idx = 0;
+    state.busy = false;
+
+    updateHUD();
+    overlay.classList.remove('show');
+    modal.classList.remove('ending');
+    sceneView.style.display = 'block';
+    endView.style.display = 'none';
+
+    personEl.style.transition = 'none';
+    personEl.style.left = START_X + '%';
+    personEl.classList.remove('show');
+    void personEl.offsetWidth;
+    personEl.style.transition = '';
+
+    rockEls.forEach(function (el) { el.classList.remove('active', 'done'); });
+
+    setStatus('點擊「開始旅程」，展開你的觀海之路。');
+    mainBtn.textContent = '開始旅程';
+    mainBtn.disabled = false;
+    mainBtn.onclick = startGame;
+  }
+
+  btnRock.addEventListener('click', function () { choose('rock'); });
+  btnSand.addEventListener('click', function () { choose('sand'); });
+  btnNext.addEventListener('click', onNext);
+  mainBtn.addEventListener('click', function () {
+    if (mainBtn.onclick) mainBtn.onclick();
+  });
+  mainBtn.onclick = startGame;
+
+  updateHUD();
+})();
+</script>
 </body>
 </html>
