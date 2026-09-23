@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>觀海記 · 礁石與沙灘</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+
+  body {
+    font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Heiti TC", system-ui, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1b4a63 0%, #0d2233 55%, #061420 100%);
+    color: #e8f4ff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 14px 10px 28px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* ---------- 遊戲外框 ---------- */
+  .game {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+    border: 1px solid rgba(140,200,240,.18);
+    border-radius: 22px;
+    padding: 14px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  .title {
+    margin: 2px 0 12px;
+    text-align: center;
+    font-size: clamp(15px, 2.5vw, 21px);
+    letter-spacing: 3px;
+    font-weight: 800;
+    color: #bfe6ff;
+    text-shadow: 0 0 18px rgba(90,190,255,.55);
+  }
+
+  /* ---------- 頂部數值條 ---------- */
+  .hud { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: clamp(11px, 1.6vw, 14px);
+  }
+  .bar-row .label { width: 4.4em; text-align: right; flex: none; color: #cfe8f8; letter-spacing: 1px; }
+  .bar {
+    flex: 1;
+    height: 15px;
+    background: rgba(0,0,0,.38);
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,.6);
+  }
+  .fill {
+    height: 100%;
+    width: 50%;
+    border-radius: 999px;
+    transition: width .75s cubic-bezier(.2,.85,.3,1);
+  }
+  .fill.p { background: linear-gradient(90deg, #ff7a7a, #c92a2a); box-shadow: 0 0 12px rgba(255,90,90,.75); }
+  .fill.r { background: linear-gradient(90deg, #63b8f8, #1864ab); box-shadow: 0 0 12px rgba(90,170,255,.75); }
+  .bar-row .val {
+    width: 2.6em; flex: none;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  /* ---------- 場景 ---------- */
+  .scene {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 235px;
+    max-height: 420px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #9fd8f5;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: inset 0 0 50px rgba(0,20,40,.22), 0 8px 22px rgba(0,0,0,.32);
+  }
+
+  .sky {
+    position: absolute; inset: 0 0 45% 0;
+    background: linear-gradient(180deg, #4fb3e8 0%, #8fd4f5 55%, #d8f1fd 100%);
+  }
+  .sun {
+    position: absolute; top: 7%; right: 12%;
+    width: clamp(26px, 5vw, 52px); aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffbd6 0%, #ffe066 45%, rgba(255,214,64,0) 72%);
+    box-shadow: 0 0 40px rgba(255,224,102,.8);
+    animation: sunPulse 4s ease-in-out infinite;
+  }
+  @keyframes sunPulse {
+    0%,100% { opacity: .82; transform: scale(1); }
+    50%     { opacity: 1;   transform: scale(1.08); }
+  }
+
+  .cloud {
+    position: absolute; height: 4.5%;
+    background: #fff; border-radius: 999px;
+    opacity: .88; filter: blur(1px);
+    box-shadow: 0 0 18px rgba(255,255,255,.6);
+  }
+  .cloud::before {
+    content: ''; position: absolute;
+    left: 18%; bottom: 45%;
+    width: 36%; aspect-ratio: 1;
+    background: inherit; border-radius: 50%;
+  }
+  .c1 { top: 11%; left: 7%;  width: 15%; animation: drift 26s ease-in-out infinite; }
+  .c2 { top: 23%; left: 40%; width: 11%; animation: drift 34s ease-in-out infinite; }
+  .c3 { top: 7%;  left: 64%; width: 13%; animation: drift 30s ease-in-out infinite; }
+  @keyframes drift {
+    0%,100% { transform: translateX(-8%); }
+    50%     { transform: translateX(8%); }
+  }
+
+  .sea {
+    position: absolute; left: 0; right: 0; top: 55%; bottom: 26%;
+    background: linear-gradient(180deg, #46a9dd 0%, #1f74ab 55%, #14568a 100%);
+  }
+  .sea::before {
+    content: '';
+    position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85), rgba(255,255,255,0));
+  }
+  .sea::after {
+    content: '';
+    position: absolute; inset: 12% 0 auto 0; height: 40%;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,.16) 0 2px, transparent 2px 16px);
+    animation: waveShift 7s linear infinite;
+  }
+  @keyframes waveShift {
+    from { background-position-y: 0; }
+    to   { background-position-y: 16px; }
+  }
+
+  .sand {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
+    background: linear-gradient(180deg, #f6e5b5 0%, #e8d099 55%, #d8b97a 100%);
+  }
+  .sand::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(170,140,85,.35) 1px, transparent 1.6px);
+    background-size: 16px 12px;
+    opacity: .65;
+  }
+
+  .path {
+    position: absolute; left: -3%; right: -3%; bottom: 19.5%; height: 8%;
+    background: linear-gradient(180deg, #fbeec6, #e6d09b);
+    border-radius: 999px;
+    opacity: .95;
+    box-shadow: 0 3px 0 rgba(150,120,70,.28), inset 0 1px 0 rgba(255,255,255,.6);
+    z-index: 3;
+  }
+
+  /* ---------- 燈塔 ---------- */
+  .lighthouse {
+    position: absolute;
+    left: 92%; bottom: 25%;
+    width: clamp(16px, 2.6vw, 32px);
+    aspect-ratio: 1 / 3;
+    transform: translateX(-50%);
+    z-index: 4;
+  }
+  .lighthouse .tower {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(180deg, #ffffff 0 20%, #e74c3c 20% 40%);
+    clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%);
+    border-radius: 4px 4px 2px 2px;
+    box-shadow: inset -3px 0 6px rgba(0,0,0,.18);
+  }
+  .lighthouse .lamp {
+    position: absolute; left: 50%; top: -22%;
+    transform: translateX(-50%);
+    width: 62%; aspect-ratio: 1 / 1.1;
+    background: radial-gradient(circle at 50% 40%, #fffbe0, #ffd93d 55%, #f0a500);
+    border-radius: 22% 22% 12% 12%;
+    box-shadow: 0 0 20px 7px rgba(255,222,89,.7);
+    animation: lampGlow 2.4s ease-in-out infinite;
+  }
+  .lighthouse .roof {
+    position: absolute; left: 50%; top: -40%;
+    transform: translateX(-50%);
+    width: 80%; aspect-ratio: 2 / 1;
+    background: #2c3e50;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+  @keyframes lampGlow { 0%,100% { opacity: .8; } 50% { opacity: 1; } }
+
+  /* ---------- 礁石 ---------- */
+  .rock {
+    position: absolute;
+    bottom: 24%;
+    width: clamp(24px, 4.4vw, 52px);
+    aspect-ratio: 1.35 / 1;
+    transform: translateX(-50%);
+    background: radial-gradient(circle at 32% 22%, #9c8d7e 0%, #6b5d50 45%, #483d34 100%);
+    border-radius: 46% 54% 38% 42% / 62% 66% 34% 38%;
+    box-shadow: inset -3px -4px 6px rgba(0,0,0,.35),
+                inset  3px  3px 6px rgba(255,255,255,.15),
+                0 5px 10px rgba(0,0,0,.3);
+    transition: box-shadow .3s, filter .3s, opacity .4s;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5;
+  }
+  .rock .num {
+    font-size: clamp(8px, 1.2vw, 13px);
+    font-weight: 800;
+    color: rgba(255,255,255,.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,.65);
+    margin-top: 8%;
+  }
+  .rock.active {
+    box-shadow: 0 0 0 3px rgba(255,228,140,.9),
+                0 0 24px 7px rgba(255,205,80,.65),
+                inset -3px -4px 6px rgba(0,0,0,.35);
+    filter: brightness(1.15);
+  }
+  .rock.done { opacity: .5; filter: saturate(.55); }
+
+  /* ---------- 小人 ---------- */
+  .person {
+    position: absolute;
+    bottom: 25%;
+    left: 5%;
+    width: clamp(18px, 2.8vw, 34px);
+    transform: translateX(-50%);
+    transition: left .95s cubic-bezier(.45,.05,.35,1), opacity .4s ease;
+    opacity: 0;
+    z-index: 8;
+    pointer-events: none;
+  }
+  .person.show { opacity: 1; }
+
+  .person-inner {
+    display: flex; flex-direction: column; align-items: center;
+    animation: bob 1.6s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-7%); }
+  }
+
+  .person .head {
+    position: relative;
+    width: 58%; aspect-ratio: 1;
+    background: #f8d3a5;
+    border: 2px solid #c99a6a;
+    border-radius: 50%;
+  }
+  .person .head::after {
+    content: '';
+    position: absolute;
+    top: -20%; left: -7%;
+    width: 114%; height: 56%;
+    background: #3d2b1f;
+    border-radius: 50% 50% 30% 30%;
+  }
+  .person .body {
+    width: 78%; aspect-ratio: 1 / 1.05;
+    margin-top: -5%;
+    background: linear-gradient(180deg, #4da3f0, #2b6cb0);
+    border-radius: 38% 38% 22% 22%;
+  }
+  .person .legs {
+    display: flex; gap: 14%;
+    width: 58%; margin-top: -3%;
+  }
+  .person .leg {
+    flex: 1; aspect-ratio: 1 / 1.7;
+    background: #2f4f7a;
+    border-radius: 0 0 42% 42%;
+  }
+
+  /* ---------- 對話框 / 遮罩 ---------- */
+  .overlay {
+    position: absolute; inset: 0;
+    border-radius: 16px; /* 與場景圓角一致 */
+    background: rgba(5, 20, 34, .68);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column; /* 修正：改為垂直排列 */
+    padding: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .28s ease;
+    z-index: 40;
+    overflow: hidden;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  .modal {
+    width: 100%;
+    max-width: 500px;
+    max-height: 100%;
+    min-height: 0; /* 修正：允許在 flex 容器中縮小以正常滾動 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    margin: auto; /* 修正：使用 margin auto 完美置中，避免頂部被裁切 */
+    background: linear-gradient(180deg, #ffffff 0%, #eaf4ff 100%);
+    color: #16324a;
+    border-radius: 18px;
+    padding: 18px 16px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.5);
+    transform: translateY(14px) scale(.96);
+    transition: transform .3s cubic-bezier(.2,.9,.3,1.25);
+    font-size: clamp(13px, 1.55vw, 15px);
+    line-height: 1.75;
+  }
+  .overlay.show .modal { transform: translateY(0) scale(1); }
+
+  .modal h3 {
+    margin: 0 0 10px;
+    font-size: 1.12em;
+    color: #0b5c8a;
+    letter-spacing: .5px;
+    border-left: 4px solid #3aa0d8;
+    padding-left: 9px;
+  }
+  .modal p { margin: 0 0 10px; }
+
+  .choices { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+  .choice {
+    font-family: inherit;
+    font-size: 1em;
+    font-weight: 700;
+    padding: 11px 14px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    color: #fff;
+    line-height: 1.45;
+    transition: transform .15s, filter .15s, box-shadow .15s;
+    width: 100%; /* 修正：確保按鈕填滿容器 */
+    word-break: break-word; /* 修正：避免長文字撐破 */
+    white-space: normal;
+  }
+  .choice .sub {
+    display: block;
+    font-size: .85em;
+    font-weight: 500;
+    opacity: .85;
+    margin-top: 2px;
+  }
+  .choice.rock {
+    background: linear-gradient(135deg, #8a6f5c, #4a372b);
+    box-shadow: 0 5px 14px rgba(74,55,43,.4);
+  }
+  .choice.sand {
+    background: linear-gradient(135deg, #f5c463, #e09420);
+    color: #3a2500;
+    box-shadow: 0 5px 14px rgba(224,148,32,.4);
+  }
+  .choice:hover  { transform: translateY(-2px); filter: brightness(1.08); }
+  .choice:active { transform: translateY(0) scale(.985); }
+
+  #resultText { font-weight: 700; color: #0b5c8a; }
+  .delta { font-size: .95em; color: #48697f; }
+  .delta b { font-size: 1.08em; }
+  .delta .up   { color: #1f9d55; }
+  .delta .down { color: #d64545; }
+
+  /* ---------- 按鈕 ---------- */
+  .btn {
+    font-family: inherit;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 800;
+    letter-spacing: 1px;
+    transition: transform .15s, box-shadow .15s, filter .15s;
+  }
+  .btn.primary {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1em;
+    color: #fff;
+    background: linear-gradient(135deg, #29b6c9, #0b7285);
+    box-shadow: 0 8px 20px rgba(11,114,133,.45);
+  }
+  .btn.primary:hover:not(:disabled)  { transform: translateY(-2px); filter: brightness(1.08); }
+  .btn.primary:active:not(:disabled) { transform: translateY(0) scale(.985); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+
+  /* ---------- 底部 ---------- */
+  .footer {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .status {
+    font-size: clamp(12px, 1.6vw, 14px);
+    color: #9fd0ec;
+    text-align: center;
+    min-height: 1.5em;
+    line-height: 1.55;
+  }
+  .footer .btn.primary { max-width: 320px; margin: 0 auto; }
+
+  /* ---------- 結局卡 ---------- */
+  .modal.ending { text-align: center; }
+
+  .ending .badge {
+    display: inline-block;
+    font-size: .82em;
+    letter-spacing: 3px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: #e2f0fb;
+    color: #0b5c8a;
+    margin-bottom: 12px;
+  }
+  .ending .end-emoji { font-size: 2.6em; line-height: 1; margin-bottom: 6px; }
+  .ending h3 {
+    border: none; padding: 0; margin: 0 0 12px;
+    font-size: 1.55em; letter-spacing: 4px;
+  }
+  .ending .end-comment {
+    text-align: left;
+    background: #f4faff;
+    border-left: 4px solid #7fc7ee;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #26485f;
+  }
+  .ending .end-reflect {
+    text-align: left;
+    font-size: .92em;
+    color: #5b7f96;
+    margin-top: 12px;
+  }
+  .ending .end-stats {
+    display: flex;
+    justify-content: center;
+    gap: 26px;
+    margin: 16px 0 4px;
+    font-size: .95em;
+    color: #48697f;
+  }
+  .ending .end-stats b { font-size: 1.25em; }
+  .ending .btn.primary { margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<div class="game">
+
+  <h1 class="title">🌊 觀海記 · 礁石與沙灘</h1>
+
+  <!-- 數值條 -->
+  <div class="hud">
+    <div class="bar-row">
+      <span class="label">原則值</span>
+      <div class="bar"><div class="fill p" id="pFill"></div></div>
+      <span class="val" id="pVal">50</span>
+    </div>
+    <div class="bar-row">
+      <span class="label">關係值</span>
+      <div class="bar"><div class="fill r" id="rFill"></div></div>
+      <span class="val" id="rVal">50</span>
+    </div>
+  </div>
+
+  <!-- 場景 -->
+  <div class="scene" id="scene">
+    <div class="sky"></div>
+    <div class="sun"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="sea"></div>
+    <div class="sand"></div>
+    <div class="path"></div>
+
+    <div class="lighthouse">
+      <div class="tower"></div>
+      <div class="lamp"></div>
+      <div class="roof"></div>
+    </div>
+
+    <div class="person" id="person">
+      <div class="person-inner">
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="legs"><div class="leg"></div><div class="leg"></div></div>
+      </div>
+    </div>
+
+    <!-- 礁石由 JS 插入 -->
+
+    <!-- 對話遮罩 -->
+    <div class="overlay" id="overlay">
+      <div class="modal" id="modal">
+        <div id="sceneView">
+          <h3 id="modalTitle"></h3>
+          <p id="modalDesc"></p>
+          <div class="choices" id="choices">
+            <button class="choice rock" id="btnRock"></button>
+            <button class="choice sand" id="btnSand"></button>
+          </div>
+          <div class="result" id="resultBox" style="display:none">
+            <p id="resultText"></p>
+            <p class="delta" id="resultDelta"></p>
+            <button class="btn primary" id="btnNext">繼續前進 →</button>
+          </div>
+        </div>
+        <div id="endView" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部控制 -->
+  <div class="footer">
+    <div class="status" id="status">點擊「開始旅程」，展開你的觀海之路。</div>
+    <button class="btn primary" id="mainBtn">開始旅程</button>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==================== 情境資料（全部寫死） ==================== */
+  const SCENARIOS = [
+    {
+      title: '第 1 塊礁石：考試被誤會作弊',
+      desc: '段考時，隔壁同學的答案卡不小心滑到你的桌邊。監考老師走過來，懷疑你偷看，全班的目光都集中在你身上……',
+      rock: {
+        name: '據理力爭',
+        result: '你當場向老師說明經過。老師查清後還你清白，但同學覺得你「太剛硬、不好相處」。',
+        dp: 15, dr: -10
+      },
+      sand: {
+        name: '先接受處罰',
+        result: '你默默接受扣分。事後老師發現是誤會並向你道歉，但你的成績已經受到影響。',
+        dp: -5, dr: 15
+      }
+    },
+    {
+      title: '第 2 塊礁石：好朋友借錢不還',
+      desc: '好朋友跟你借了一筆錢，說好下週還，結果一拖再拖，好像忘了這件事。你們每天還是會一起打球、一起吃午餐……',
+      rock: {
+        name: '直接攤牌',
+        result: '你把話講清楚，錢要回來了。但朋友的臉色變得很難看，你們之間出現了一道裂痕。',
+        dp: 15, dr: -10
+      },
+      sand: {
+        name: '暫時不提',
+        result: '你把話吞了回去。錢大概拿不回來了，但你們的友誼看起來還是和以前一樣。',
+        dp: -5, dr: 15
+      }
+    },
+    {
+      title: '第 3 塊礁石：被同學排擠',
+      desc: '班上幾個同學開始刻意不找你講話，分組時也沒有人要跟你一組。你隱約知道，他們覺得你「跟大家不一樣」。',
+      rock: {
+        name: '不妥協，做自己',
+        result: '你照自己的方式生活，不刻意討好任何人。日子孤獨，但心裡很自在。',
+        dp: 15, dr: -10
+      },
+      sand: {
+        name: '主動示好',
+        result: '你主動找他們聊天、配合他們的喜好。你融入了小圈圈，但心裡總有點違背自己的感覺。',
+        dp: -5, dr: 15
+      }
+    },
+    {
+      title: '第 4 塊礁石：父母偷看日記',
+      desc: '你發現日記本被翻動過，位置和折角都跟你放的不一樣。媽媽說：「我們只是關心你。」',
+      rock: {
+        name: '嚴肅抗議',
+        result: '你很認真地告訴他們這是你的隱私。父母很生氣，但從此之後，他們真的不敢再偷看了。',
+        dp: 15, dr: -10
+      },
+      sand: {
+        name: '理解父母',
+        result: '你選擇體諒他們的擔心，沒有多說什麼。父母很感動，但他們的操心似乎沒有減少。',
+        dp: -5, dr: 15
+      }
+    },
+    {
+      title: '第 5 塊礁石：分組報告被隊友拖累',
+      desc: '分組報告的前一天晚上，你才發現隊友幾乎什麼都沒做。明天就要上台了，你的名字就寫在報告的第一頁。',
+      rock: {
+        name: '向老師舉報',
+        result: '你把每個人的分工如實告訴老師。隊友被扣分，你也因此被班上一些人孤立。',
+        dp: 15, dr: -10
+      },
+      sand: {
+        name: '自己多做一點',
+        result: '你熬夜把整份報告補完。報告順利交出去了，但你累得幾乎說不出話。',
+        dp: -5, dr: 15
+      }
+    }
+  ];
+
+  /* ==================== 位置設定（%） ==================== */
+  const START_X        = 5;
+  const ROCK_X         = [20, 34, 48, 62, 76];
+  const APPROACH_GAP   = 5.5;
+  const PASS_GAP       = 5.5;
+  const END_X          = 86;
+
+  /* ==================== 狀態 ==================== */
+  const state = { p: 50, r: 50, idx: 0, busy: false };
+
+  /* ==================== DOM ==================== */
+  const scene      = document.getElementById('scene');
+  const personEl   = document.getElementById('person');
+  const mainBtn    = document.getElementById('mainBtn');
+  const statusEl   = document.getElementById('status');
+  const overlay    = document.getElementById('overlay');
+  const modal      = document.getElementById('modal');
+  const sceneView  = document.getElementById('sceneView');
+  const endView    = document.getElementById('endView');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalDesc  = document.getElementById('modalDesc');
+  const choicesEl  = document.getElementById('choices');
+  const resultBox  = document.getElementById('resultBox');
+  const resultText = document.getElementById('resultText');
+  const resultDelta= document.getElementById('resultDelta');
+  const btnRock    = document.getElementById('btnRock');
+  const btnSand    = document.getElementById('btnSand');
+  const btnNext    = document.getElementById('btnNext');
+  const pFill      = document.getElementById('pFill');
+  const rFill      = document.getElementById('rFill');
+  const pVal       = document.getElementById('pVal');
+  const rVal       = document.getElementById('rVal');
+
+  /* ==================== 建立礁石 ==================== */
+  const rockEls = ROCK_X.map(function (x, i) {
+    const el = document.createElement('div');
+    el.className = 'rock';
+    el.style.left = x + '%';
+    el.innerHTML = '<span class="num">' + (i + 1) + '</span>';
+    scene.insertBefore(el, overlay);
+    return el;
+  });
+
+  /* ==================== 工具函式 ==================== */
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function updateHUD() {
+    pFill.style.width = state.p + '%';
+    rFill.style.width = state.r + '%';
+    pVal.textContent = state.p;
+    rVal.textContent = state.r;
+  }
+
+  function setStatus(text) { statusEl.textContent = text; }
+
+  function highlightRock(i) {
+    rockEls.forEach(function (el, k) {
+      el.classList.toggle('active', k === i);
+      el.classList.toggle('done', k < i);
+    });
+  }
+
+  function clearHighlight() {
+    rockEls.forEach(function (el) { el.classList.remove('active'); });
+  }
+
+  /* ==================== 流程 ==================== */
+  function startGame() {
+    mainBtn.disabled = true;
+    personEl.classList.add('show');
+    setStatus('旅程開始！沿著小路往前走，第一塊礁石就在前方。');
+    mainBtn.textContent = '向前走';
+    mainBtn.onclick = walkToRock;
+    setTimeout(function () {
+      mainBtn.disabled = false;
+    }, 350);
+  }
+
+  function walkToRock() {
+    if (state.busy || state.idx >= SCENARIOS.length) return;
+    state.busy = true;
+    mainBtn.disabled = true;
+
+    const i = state.idx;
+    highlightRock(i);
+    personEl.style.left = (ROCK_X[i] - APPROACH_GAP) + '%';
+    setStatus('走向第 ' + (i + 1) + ' 塊礁石……');
+
+    setTimeout(function () {
+      state.busy = false;
+      openDialog(i);
+    }, 1000);
+  }
+
+  function openDialog(i) {
+    const s = SCENARIOS[i];
+    modal.classList.remove('ending');
+    sceneView.style.display = 'block';
+    endView.style.display = 'none';
+
+    modalTitle.textContent = s.title;
+    modalDesc.textContent = s.desc;
+    choicesEl.style.display = 'flex';
+    resultBox.style.display = 'none';
+
+    btnRock.innerHTML = '🪨 礁石態度（堅持原則）<span class="sub">' + s.rock.name + '</span>';
+    btnSand.innerHTML = '🏖 沙灘態度（包容退讓）<span class="sub">' + s.sand.name + '</span>';
+
+    overlay.classList.add('show');
+  }
+
+  function choose(kind) {
+    const s = SCENARIOS[state.idx];
+    const opt = (kind === 'rock') ? s.rock : s.sand;
+
+    state.p = clamp(state.p + opt.dp, 0, 100);
+    state.r = clamp(state.r + opt.dr, 0, 100);
+    updateHUD();
+
+    choicesEl.style.display = 'none';
+    resultBox.style.display = 'block';
+
+    resultText.textContent = '你選擇了「' + opt.name + '」。' + opt.result;
+
+    const dpTxt = (opt.dp >= 0 ? '+' : '') + opt.dp;
+    const drTxt = (opt.dr >= 0 ? '+' : '') + opt.dr;
+    resultDelta.innerHTML =
+      '原則值 <b class="' + (opt.dp >= 0 ? 'up' : 'down') + '">' + dpTxt + '</b>' +
+      '　｜　關係值 <b class="' + (opt.dr >= 0 ? 'up' : 'down') + '">' + drTxt + '</b>';
+
+    btnNext.textContent = (state.idx === SCENARIOS.length - 1)
+      ? '繼續前進 → 燈塔'
+      : '繼續前進 →';
+  }
+
+  function onNext() {
+    overlay.classList.remove('show');
+
+    const i = state.idx;
+    rockEls[i].classList.remove('active');
+    rockEls[i].classList.add('done');
+
+    personEl.style.left = (ROCK_X[i] + PASS_GAP) + '%';
+    state.idx += 1;
+    state.busy = false;
+
+    if (state.idx < SCENARIOS.length) {
+      setStatus('越過了礁石。前方還有 ' + (SCENARIOS.length - state.idx) + ' 塊礁石。');
+      mainBtn.textContent = '向前走';
+      mainBtn.disabled = false;
+      mainBtn.onclick = walkToRock;
+    } else {
+      setStatus('五塊礁石都走過了。燈塔就在前方。');
+      mainBtn.textContent = '走向燈塔';
+      mainBtn.disabled = false;
+      mainBtn.onclick = walkToEnd;
+    }
+  }
+
+  function walkToEnd() {
+    if (state.busy) return;
+    state.busy = true;
+    mainBtn.disabled = true;
+    personEl.style.left = END_X + '%';
+    setStatus('沿著海岸，走向燈塔……');
+    setTimeout(showEnding, 1500);
+  }
+
+  /* ==================== 結局 ==================== */
+  function showEnding() {
+    const diff = state.p - state.r;
+    let title, emoji, color, comment, reflect;
+
+    if (diff > 20) {
+      title  = '孤獨的礁石';
+      emoji  = '🪨';
+      color  = '#6b5344';
+      comment = '你像海中的礁石，風浪再大也不改變形狀。原則讓你看清自己，卻也讓身邊的人難以靠近。真正的堅持，不是拒絕所有海浪，而是知道哪些浪值得讓路。';
+      reflect = '想一想：《觀海記》的結尾，作者站在岸邊，看著礁石與沙灘共存——如果這片海只剩下礁石，它還會好看嗎？';
+    } else if (diff < -20) {
+      title  = '被沖刷的沙灘';
+      emoji  = '🏖';
+      color  = '#c8891a';
+      comment = '你像柔軟的沙灘，願意承接每一道浪。關係讓你被喜愛，卻也在一次次退讓中，慢慢失去了自己的形狀。學會說「不」，才能守住心裡的那道岸線。';
+      reflect = '想一想：《觀海記》的結尾，作者說沙灘記住了每一道浪的形狀——可是潮水退去之後，沙灘還剩下什麼呢？';
+    } else {
+      title  = '智慧的觀海者';
+      emoji  = '🌊';
+      color  = '#0b7285';
+      comment = '你既不做拒絕浪潮的礁石，也不做任人沖刷的沙灘。該堅持時挺立，該柔軟時退讓。正如《觀海記》的結尾——海不會只有一種樣子，懂得何時做礁石、何時做沙灘，才是真正的智慧。';
+      reflect = '想一想：《觀海記》的結尾，作者站在岸邊，看見礁石與沙灘共存。你的選擇，讓你看見了怎樣的自己？';
+    }
+
+    modal.classList.add('ending');
+    sceneView.style.display = 'none';
+    endView.style.display = 'block';
+
+    endView.innerHTML =
+      '<div class="badge">旅 程 結 束</div>' +
+      '<div class="end-emoji">' + emoji + '</div>' +
+      '<h3 style="color:' + color + '">' + title + '</h3>' +
+      '<p class="end-comment">' + comment + '</p>' +
+      '<div class="end-stats">' +
+        '<span>原則值 <b style="color:#d64545">' + state.p + '</b></span>' +
+        '<span>關係值 <b style="color:#1864ab">' + state.r + '</b></span>' +
+      '</div>' +
+      '<p class="end-reflect">' + reflect + '</p>' +
+      '<button class="btn primary" id="btnRestart">重新開始旅程</button>';
+
+    overlay.classList.add('show');
+    setStatus('旅程結束。你是「' + title + '」。');
+
+    document.getElementById('btnRestart').addEventListener('click', resetGame);
+  }
+
+  /* ==================== 重置 ==================== */
+  function resetGame() {
+    state.p = 50;
+    state.r = 50;
+    state.idx = 0;
+    state.busy = false;
+
+    updateHUD();
+
+    overlay.classList.remove('show');
+    modal.classList.remove('ending');
+    sceneView.style.display = 'block';
+    endView.style.display = 'none';
+
+    personEl.style.transition = 'none';
+    personEl.style.left = START_X + '%';
+    personEl.classList.remove('show');
+    void personEl.offsetWidth;
+    personEl.style.transition = '';
+
+    rockEls.forEach(function (el) { el.classList.remove('active', 'done'); });
+
+    setStatus('點擊「開始旅程」，展開你的觀海之路。');
+    mainBtn.textContent = '開始旅程';
+    mainBtn.disabled = false;
+    mainBtn.onclick = startGame;
+  }
+
+  /* ==================== 綁定 ==================== */
+  btnRock.addEventListener('click', function () { choose('rock'); });
+  btnSand.addEventListener('click', function () { choose('sand'); });
+  btnNext.addEventListener('click', onNext);
+  mainBtn.addEventListener('click', function () {
+    if (mainBtn.onclick) mainBtn.onclick();
+  });
+
+  mainBtn.onclick = startGame;
+
+  updateHUD();
+})();
+</script>
+</body>
+</html>
